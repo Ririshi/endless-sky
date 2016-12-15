@@ -84,6 +84,8 @@ private:
 	
 	int lifetime = 0;
 	bool hasLock = true;
+	bool jammed = false;
+	double jammedTurn = 0.;
 };
 
 

@@ -200,7 +200,14 @@ bool Projectile::Move(list<Effect> &effects)
 			}
 		}
 	}
-	// If a weapon is homing but has no target, do not turn it.
+	// If a homing weapon is jammed, turn randomly.
+	else if(target && homing && jammed)
+	{
+		jammedTurn = (jammedTurn ? jammedTurn : turn * (2. * Random::Real() - 1.));
+		turn = jammedTurn;
+	}
+	
+	// If a weapon is homing but has no target or lock (while not jammed), do not turn it.
 	else if(homing)
 		turn = 0.;
 	
@@ -290,7 +297,9 @@ const Ship *Projectile::Target() const
 void Projectile::CheckLock(const Ship &target)
 {
 	double base = hasLock ? 1. : .5;
+	double radarJamming = target.Attributes().Get("radar jamming");
 	hasLock = false;
+	jammed = false;
 	
 	// For each tracking type, calculate the probability that a lock will be
 	// lost in a given five-second period. Then, since this check is done every
@@ -317,7 +326,25 @@ void Projectile::CheckLock(const Ship &target)
 	// Jamming of 1 is enough to increase your chance of dodging to 50%.
 	if(weapon->RadarTracking())
 	{
-		double probability = weapon->RadarTracking() / (1. + target.Attributes().Get("radar jamming"));
+		double probability = weapon->RadarTracking() / (1. + radarJamming);
 		hasLock |= Check(probability, base);
+		
+		// Jammers have a chance to confuse a missile if they first break the target lock.
+		if(!hasLock && radarJamming)
+		{
+			// Jamming chance should be a function that scales from 0 to 1: 1 - 1/(1+kx) is the
+			// simplest such function. k = .1 is a scaling factor that enforces jammingChance = 
+			// 50% for jamming = 10.
+			double jammingChance = 1. - 1. / (1. + .1 * radarJamming);
+			jammed |= (Random::Real() < jammingChance);
+		}
 	}
+	
+	// If any tracking mode established a successful lock, clear the jammed state.
+	if(hasLock)
+	{
+		jammed = false;
+		jammedTurn = 0.;		
+	}
+
 }
