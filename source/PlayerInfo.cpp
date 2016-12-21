@@ -2029,6 +2029,11 @@ void PlayerInfo::UpdateAutoConditions()
 	auto last = conditions.lower_bound("ships:!");
 	if(first != last)
 		conditions.erase(first, last);
+	// Clear any existing tech: conditions.
+	first = conditions.lower_bound("tech: ");
+	last = conditions.lower_bound("tech:!");
+	if(first != last)
+		conditions.erase(first, last);
 	// Store special conditions for cargo and passenger space.
 	conditions["cargo space"] = 0;
 	conditions["passenger space"] = 0;
@@ -2038,7 +2043,13 @@ void PlayerInfo::UpdateAutoConditions()
 			conditions["cargo space"] += ship->Attributes().Get("cargo space");
 			conditions["passenger space"] += ship->Attributes().Get("bunks") - ship->RequiredCrew();
 			++conditions["ships: " + ship->Attributes().Category()];
-		}
+			
+			// Outfit tech tags are made into conditions to be available for mission logic.
+			for(const auto &at : ship->Attributes().Attributes())
+				if(at.first.find("tech: ") != string::npos)
+					conditions[at.first] += at.second;
+		}		
+
 }
 
 
