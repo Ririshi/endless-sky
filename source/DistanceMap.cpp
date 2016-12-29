@@ -25,8 +25,8 @@ using namespace std;
 // If a player is given, the map will only use hyperspace paths known to the
 // player; that is, one end of the path has been visited. Also, if the
 // player's flagship has a jump drive, the jumps will be make use of it.
-DistanceMap::DistanceMap(const System *center, int maxCount, int maxDistance)
-	: maxCount(maxCount), maxDistance(maxDistance), useWormholes(false)
+DistanceMap::DistanceMap(const System *center, int maxCount, int maxDistance, bool mustJump)
+	: maxCount(maxCount), maxDistance(maxDistance), useWormholes(false), mustJump(mustJump)
 {
 	Init(center);
 }
@@ -140,9 +140,10 @@ void DistanceMap::Init(const System *center, const Ship *ship)
 		return;
 	
 	// Check what travel capabilities this ship has. If no ship is given, assume
-	// hyperdrive capability and no jump drive.
+	// hyperdrive capability and no jump drive unless passed the "must jump"
+	// flag.
 	bool hasHyper = ship ? ship->Attributes().Get("hyperdrive") : true;
-	bool hasJump = ship ? ship->Attributes().Get("jump drive") : false;
+	bool hasJump = ship ? ship->Attributes().Get("jump drive") : mustJump;
 	// If the ship has no jump capability, do pathfinding as if it has a
 	// hyperdrive. The Ship class still won't let it jump, though.
 	hasHyper |= !(hasHyper | hasJump);
