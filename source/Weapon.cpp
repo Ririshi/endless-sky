@@ -70,6 +70,8 @@ void Weapon::LoadWeapon(const DataNode &node)
 			isStreamed = true;
 		else if(child.Token(0) == "cluster")
 			isClustered = true;
+		else if(child.Token(0) == "no collision")
+			noCollision = true;
 		else if(child.Size() >= 2)
 		{
 			if(child.Token(0) == "lifetime")
