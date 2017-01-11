@@ -54,6 +54,8 @@ public:
 	// Return a point rotated by this angle around (0, 0).
 	Point Rotate(const Point &point) const;
 	
+	// Return the shortest difference between two angles in degrees.
+	double AngleDifference(const Angle &compare) const;
 	
 private:
 	explicit Angle(int32_t angle);

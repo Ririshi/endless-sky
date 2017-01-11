@@ -167,6 +167,25 @@ Point Angle::Rotate(const Point &point) const
 
 
 
+// Return the shortest difference between two angles in degrees.
+double Angle::AngleDifference(const Angle &compare) const
+{
+	double difference = (angle - compare.angle) / DEG_TO_STEP;
+	
+	// The difference between the two angles may wrap around (e.g. 10 degrees
+	// compared to 350 degrees is a +20 degree difference, not -340. Take the
+	// absolute minimum when 360 is added or subtracted to account for this.
+	if(fabs(difference - 360.) < fabs(difference))
+		return difference - 360.;
+	else if(fabs(difference + 360.) < fabs(difference))
+		return difference + 360.;
+	else
+		return difference;
+	
+}
+
+
+
 // Constructor using Angle's internal representation.
 Angle::Angle(int32_t angle)
 	: angle(angle)

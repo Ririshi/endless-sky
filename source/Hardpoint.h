@@ -44,6 +44,7 @@ public:
 	bool IsTurret() const;
 	bool IsHoming() const;
 	bool IsAntiMissile() const;
+	double SwivelDegrees() const;
 	
 	// Check if this weapon is ready to fire.
 	bool IsReady() const;
@@ -78,10 +79,13 @@ private:
 	Point point;
 	// Angle adjustment for convergence.
 	Angle angle;
+	// Angle weapon will fire.
+	Angle aim;
 	// Reload timers and other attributes.
 	double reload = 0.;
 	double burstReload = 0.;
 	int burstCount = 0;
+	double swivelDegrees = 0.;
 	bool isTurret = false;
 	bool isFiring = false;
 	bool wasFiring = false;

@@ -82,6 +82,8 @@ void Weapon::LoadWeapon(const DataNode &node)
 				burstReload = max(1., child.Value(1));
 			else if(child.Token(0) == "burst count")
 				burstCount = max(1., child.Value(1));
+			else if (child.Token(0) == "swivel degrees")
+				swivelDegrees = child.Value(1);
 			else if(child.Token(0) == "homing")
 				homing = child.Value(1);
 			else if(child.Token(0) == "missile strength")

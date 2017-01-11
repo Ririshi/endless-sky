@@ -1432,6 +1432,7 @@ void AI::Attack(Ship &ship, Command &command, const Ship &target)
 {
 	// First, figure out what your shortest-range weapon is.
 	double shortestRange = 4000.;
+	double multiplier = 0.;
 	bool isArmed = false;
 	bool hasAmmo = false;
 	for(const Hardpoint &weapon : ship.Weapons())
@@ -1442,10 +1443,17 @@ void AI::Attack(Ship &ship, Command &command, const Ship &target)
 			isArmed = true;
 			if(!outfit->Ammo() || ship.OutfitCount(outfit->Ammo()))
 				hasAmmo = true;
-			// The missile boat AI should be applied at 1000 pixels range if
-			// all weapons are homing or turrets, and at 2000 if not.
-			double multiplier = (weapon.IsHoming() || weapon.IsTurret()) ? 1. : .5;
+			// The missile boat AI should be applied at 1000 pixels range if all
+			// weapons are homing or 360 degree turrets, 2000 if all weapons are
+			// fixed guns, and range between 1000-2000 if all weapons have a finite
+			// swivel arc.
+			if(weapon.IsHoming())
+				multiplier = 1.;
+			else
+				multiplier = .5 * (1. + weapon.SwivelDegrees() / 180.);
+				
 			shortestRange = min(multiplier * outfit->Range(), shortestRange);
+				
 		}
 	}
 	// If this ship was using the missile boat AI to run away and bombard its
