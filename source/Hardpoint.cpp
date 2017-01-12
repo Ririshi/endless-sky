@@ -166,7 +166,7 @@ void Hardpoint::Fire(Ship &ship, list<Projectile> &projectiles, list<Effect> &ef
 	// Get projectiles to start at the right position. They are drawn at an
 	// offset of (.5 * velocity) and that velocity includes the velocity of the
 	// ship that fired them.
-	Point start = ship.Position() + aim.Rotate(point) - .5 * ship.Velocity();
+	Point start = ship.Position() + facing.Rotate(point) - .5 * ship.Velocity();
 	
 	shared_ptr<const Ship> target = ship.GetTargetShip();
 	// If you are boarding your target, do not fire on it.
