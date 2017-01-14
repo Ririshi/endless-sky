@@ -1976,15 +1976,16 @@ Command AI::AutoFire(const Ship &ship, bool secondary) const
 		const Outfit *outfit = weapon.GetOutfit();
 		double vp = outfit->Velocity() + .5 * outfit->RandomVelocity();
 		double lifetime = outfit->TotalLifetime();
+		Angle facing = ship.Facing() + weapon.GetAngle();
 		
-		if(currentTarget && (weapon.IsHoming() || weapon.IsTurret()))
+		if(currentTarget && (weapon.IsHoming() || weapon.SwivelDegrees()))
 		{
 			bool hasBoarded = Has(ship, currentTarget, ShipEvent::BOARD);
 			if(currentTarget->IsDisabled() && spareDisabled && !hasBoarded && !disabledOverride)
 				continue;
 			// Don't fire turrets at targets that are accelerating or decelerating
 			// rapidly due to hyperspace jumping.
-			if(weapon.IsTurret() && currentTarget->IsHyperspacing() && currentTarget->Velocity().Length() > 10.)
+			if(weapon.SwivelDegrees() && currentTarget->IsHyperspacing() && currentTarget->Velocity().Length() > 10.)
 				continue;
 			// Don't fire secondary weapons as targets that have started jumping.
 			if(outfit->Icon() && currentTarget->IsEnteringHyperspace())
@@ -2003,6 +2004,12 @@ Command AI::AutoFire(const Ship &ship, bool secondary) const
 			// velocity of the ship firing it into account.
 			if(weapon.IsHoming())
 				v = currentTarget->Velocity();
+				
+			// If this is a swivel weapon that cannot fire through a full 360 degree
+			// arc, check if the target is within the possible firing arc.
+			if(fabs(Angle(p).AngleDifference(facing)) > weapon.SwivelDegrees())
+				continue;
+				
 			// Calculate how long it will take the projectile to reach its target.
 			double steps = Armament::RendezvousTime(p, v, vp);
 			if(steps == steps && steps <= lifetime)
@@ -2029,7 +2036,7 @@ Command AI::AutoFire(const Ship &ship, bool secondary) const
 			p += v;
 			
 			// Get the vector the weapon will travel along.
-			v = (ship.Facing() + weapon.GetAngle()).Unit() * vp - v;
+			v = facing.Unit() * vp - v;
 			// Extrapolate over the lifetime of the projectile.
 			v *= lifetime;
 			

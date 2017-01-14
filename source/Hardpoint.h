@@ -38,7 +38,9 @@ public:
 	// projectiles of this weapon should originate. This point must be
 	// rotated to take the ship's current facing direction into account.
 	const Point &GetPoint() const;
-	// Get the convergence angle adjustment of this weapon (if it's a gun).
+	// Get the convergence angle adjustment of this weapon. Guns and turrets without a
+	// target will fire at this angle, and weapons with a finite firing arc (swivel)
+	// will swivel about this angle.
 	const Angle &GetAngle() const;
 	// Shortcuts for querying weapon characteristics.
 	bool IsTurret() const;

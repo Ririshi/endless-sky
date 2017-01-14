@@ -67,7 +67,9 @@ const Point &Hardpoint::GetPoint() const
 
 
 
-// Get the convergence angle adjustment of this weapon (guns only, not turrets).
+// Get the convergence angle adjustment of this weapon. Guns and turrets without a
+// target will fire at this angle, and weapons with a finite firing arc (swivel)
+// will swivel about this angle.
 const Angle &Hardpoint::GetAngle() const
 {
 	return angle;
