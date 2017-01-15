@@ -2007,7 +2007,7 @@ Command AI::AutoFire(const Ship &ship, bool secondary) const
 				
 			// If this is a swivel weapon that cannot fire through a full 360 degree
 			// arc, check if the target is within the possible firing arc.
-			if(fabs(Angle(p).AngleDifference(facing)) > weapon.SwivelDegrees())
+			if(!weapon.IsHoming() && fabs(Angle(p).AngleDifference(facing)) > weapon.SwivelDegrees())
 				continue;
 				
 			// Calculate how long it will take the projectile to reach its target.
