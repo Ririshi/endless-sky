@@ -2034,22 +2034,32 @@ void PlayerInfo::UpdateAutoConditions()
 	last = conditions.lower_bound("tech:!");
 	if(first != last)
 		conditions.erase(first, last);
+	first = conditions.lower_bound("flagship model: ");
+	last = conditions.lower_bound("flagship model:!");
+	if(first != last)
+		conditions.erase(first, last);	
+	conditions["ships: total"] = 0;
+	
 	// Store special conditions for cargo and passenger space.
 	conditions["cargo space"] = 0;
 	conditions["passenger space"] = 0;
+	
+	// Store the player's flagship model as a condition.
+	conditions["flagship model: " + flagship->ModelName()] = 1;
+	
 	for(const shared_ptr<Ship> &ship : ships)
 		if(!ship->IsParked() && !ship->IsDisabled() && ship->GetSystem() == system)
 		{
 			conditions["cargo space"] += ship->Attributes().Get("cargo space");
 			conditions["passenger space"] += ship->Attributes().Get("bunks") - ship->RequiredCrew();
 			++conditions["ships: " + ship->Attributes().Category()];
+			++conditions["ships: total"];
 			
 			// Outfit tech tags are made into conditions to be available for mission logic.
 			for(const auto &at : ship->Attributes().Attributes())
 				if(at.first.find("tech: ") != string::npos)
 					conditions[at.first] += at.second;
-		}		
-
+		}
 }
 
 
