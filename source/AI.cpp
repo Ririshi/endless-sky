@@ -1974,7 +1974,7 @@ Command AI::AutoFire(const Ship &ship, bool secondary) const
 		start += ship.GetPersonality().Confusion();
 		
 		const Outfit *outfit = weapon.GetOutfit();
-		double vp = outfit->Velocity() + .5 * outfit->RandomVelocity();
+		double vp = outfit->WeightedVelocity();
 		double lifetime = outfit->TotalLifetime();
 		Angle facing = ship.Facing() + weapon.GetAngle();
 		
