@@ -56,6 +56,7 @@ public:
 	double Reload() const;
 	double BurstReload() const;
 	int BurstCount() const;
+	double SwivelDegrees() const;
 	int Homing() const;
 	
 	int MissileStrength() const;
@@ -135,6 +136,7 @@ private:
 	double reload = 1.;
 	double burstReload = 1.;
 	int burstCount = 1;
+	double swivelDegrees = 0;
 	int homing = 0;
 	
 	int missileStrength = 0;
@@ -187,6 +189,7 @@ inline int Weapon::RandomLifetime() const { return randomLifetime; }
 inline double Weapon::Reload() const { return reload; }
 inline double Weapon::BurstReload() const { return burstReload; }
 inline int Weapon::BurstCount() const { return burstCount; }
+inline double Weapon::SwivelDegrees() const { return swivelDegrees; }
 inline int Weapon::Homing() const { return homing; }
 
 inline int Weapon::MissileStrength() const { return missileStrength; }

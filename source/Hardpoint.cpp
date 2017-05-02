@@ -1,4 +1,4 @@
-/* Hardpoint.cpp
+﻿/* Hardpoint.cpp
 Copyright (c) 2016 by Michael Zahniser
 
 Endless Sky is free software: you can redistribute it and/or modify it under the
@@ -67,7 +67,9 @@ const Point &Hardpoint::GetPoint() const
 
 
 
-// Get the convergence angle adjustment of this weapon (guns only, not turrets).
+// Get the convergence angle adjustment of this weapon. Guns and turrets without a
+// target will fire at this angle, and weapons with a finite firing arc (swivel)
+// will swivel about this angle.
 const Angle &Hardpoint::GetAngle() const
 {
 	return angle;
@@ -124,6 +126,14 @@ int Hardpoint::BurstRemaining() const
 
 
 
+// Find out how many degrees this weapon can swivel, if at all.
+double Hardpoint::SwivelDegrees() const
+{
+	return swivelDegrees;
+}
+
+
+
 // Perform one step (i.e. decrement the reload count).
 void Hardpoint::Step()
 {
@@ -153,22 +163,27 @@ void Hardpoint::Fire(Ship &ship, list<Projectile> &projectiles, list<Effect> &ef
 {
 	// Since this is only called internally by Armament (no one else has non-
 	// const access), assume Armament checked that this is a valid call.
-	Angle aim = ship.Facing();
+	Angle facing = ship.Facing();
 	
 	// Get projectiles to start at the right position. They are drawn at an
 	// offset of (.5 * velocity) and that velocity includes the velocity of the
 	// ship that fired them.
-	Point start = ship.Position() + aim.Rotate(point) - .5 * ship.Velocity();
+	Point start = ship.Position() + facing.Rotate(point) - .5 * ship.Velocity();
 	
 	shared_ptr<const Ship> target = ship.GetTargetShip();
 	// If you are boarding your target, do not fire on it.
 	if(ship.IsBoarding() || ship.Commands().Has(Command::BOARD))
 		target.reset();
+		
+	// Adjust the angle we're facing so that non-tracking shots converge (gun
+	// (harmonization). A fixed gun or turret with no target will only fire in
+	// this direction.
+	facing += angle;
 	
 	// If this is a fixed gun, or it if is a turret but you have no target
 	// selected, it should fire straight forward, angled in slightly to cause
 	// the shots to converge (gun harmonization).
-	if(!isTurret || !target || !target->IsTargetable())
+	if(!swivelDegrees || !target || !target->IsTargetable())
 	{
 		// If this is a turret and it is not tracking a target, reset its angle
 		// to the proper convergence angle.
@@ -195,9 +210,23 @@ void Hardpoint::Fire(Ship &ship, list<Projectile> &projectiles, list<Effect> &ef
 		if(!(steps < outfit->TotalLifetime()))
 			steps = outfit->TotalLifetime();
 		
-		// Aim toward where the target will be at the calculated rendezvous time.
-		angle = Angle(p + steps * v) - aim;
+		// Identify the direction of the target at the calculated rendezvous time.
+		Angle target = Angle(p + steps * v) - aim;
+		
+		Angle swivelAngle = Angle(swivelDegrees);
+		
+		// If the target is outside the range this weapon can swivel, aim as far
+		// toward the target as possible.
+		if(fabs(target.AngleDifference(facing)) <= swivelDegrees)
+			aim = target;
+		else if(target.AngleDifference(facing) > 0.)
+			aim = facing + swivelAngle;
+		else
+			aim = facing - swivelAngle;
+>>>>>>> Swivel guns and non-360° turrets
 	}
+	else
+		aim = facing;
 	
 	// Apply the aim and hardpoint offset.
 	aim += angle;
@@ -278,6 +307,13 @@ void Hardpoint::Install(const Outfit *outfit)
 		// Projectiles with a range of zero should fire straight forward. A
 		// special check is needed to avoid divide by zero errors.
 		angle = Angle(d <= 0. ? 0. : -asin(point.X() / d) * TO_DEG);
+		
+		// Check if weapon can swivel (it may be able to if it isn't a turret).
+		swivelDegrees = outfit->SwivelDegrees();
+	
+		// By default, every turret should be able to swivel 180 degrees either side.
+		if(!swivelDegrees && isTurret)
+			swivelDegrees = 180.;
 	}
 }
 
