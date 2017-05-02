@@ -59,6 +59,9 @@ tip "cooling energy:"
 tip "cost:"
 	`Cost, in credits. If you have sold any used (depreciated) items today, you can buy them back for the same price you sold them for.`
 
+tip "disruption resistance:"
+	`The amount of disruption damage, per second, that your ship will resist.`
+	
 tip "drag:"
 	`Limits the maximum speed of a ship.`
 
@@ -122,6 +125,9 @@ tip "illegal:"
 tip "installable:"
 	`If less than zero, this outfit cannot be installed in a ship.`
 
+tip "ion resistance:"
+	`The amount of ion damage, per second, that your ship will resist.`
+	
 tip "jump drive:"
 	`This outfit allows a ship to jump to any nearby system, even if there is no hyperspace link to it. A jump drive consumes 200 fuel per jump.`
 
@@ -161,6 +167,9 @@ tip "radar jamming:"
 tip "ramscoop:"
 	`Replenishes fuel by harvesting the stellar wind. Ramscoops are more effective when closer to a star. If you add more than one ramscoop, each additional one is less effective: you need four ramscoops to achieve double the recharge rate that one ramscoop provides.`
 
+tip "piercing resistance:"
+	`The amount of piercing hull damage, per second, that your ship will resist.`	
+	
 tip "required crew / bunks:"
 	`How many crew members are required to operate this ship, and how many total bunks are available. Extra bunks can be used for passengers or extra crew.`
 
@@ -209,6 +218,9 @@ tip "solar collection:"
 tip "max speed:"
 	`The fastest this ship can travel when using ordinary thrusters (as opposed to an afterburner).`
 
+tip "slowing resistance:"
+	`The amount of slowing damage, per second, that your ship will resist.`
+	
 tip "acceleration:"
 	`How quickly this ship gains speed. The higher a ship's mass (including the mass of any cargo or fighters it is carrying), the slower it accelerates.`
 
