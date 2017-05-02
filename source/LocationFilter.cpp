@@ -61,7 +61,7 @@ namespace {
 		{
 			previousCenter = center;
 			previousMaximum = maximum;
-			distance = DistanceMap(center, -1, maximum);
+			distance = DistanceMap(center, -1, maximum, useJump);
 		}
 		// If the distance is greater than the maximum, this is not a match.
 		int d = distance.Distance(system);
@@ -135,6 +135,8 @@ void LocationFilter::Load(const DataNode &node)
 				originMaxDistance = child.Value(2);
 			}
 		}
+		else if(child.Token(0) == "must jump")
+			mustJump = true;
 	}
 }
 

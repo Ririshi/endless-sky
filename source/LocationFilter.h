@@ -60,6 +60,7 @@ private:
 	int centerMaxDistance = 1;
 	int originMinDistance = 0;
 	int originMaxDistance = -1;
+	bool mustJump = false;
 };
 
 
