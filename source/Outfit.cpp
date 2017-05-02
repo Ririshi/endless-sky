@@ -78,6 +78,8 @@ void Outfit::Load(const DataNode &node)
 		}
 		else if(child.Token(0) == "cost" && child.Size() >= 2)
 			cost = child.Value(1);
+		else if(child.Token(0).find("tech: ") != string::npos)
+			attributes[child.Token(0)] = max(1., child.Value(1));
 		else if(child.Size() >= 2)
 			attributes[child.Token(0)] = child.Value(1);
 		else
