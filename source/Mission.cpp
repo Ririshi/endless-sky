@@ -929,7 +929,7 @@ Mission Mission::Instantiate(const PlayerInfo &player) const
 		// Find the closest destination to this location.
 		DistanceMap distance(source);
 		auto it = destinations.begin();
-		auto bestIt = it;
+		auto bestIt = it;-
 		for(++it; it != destinations.end(); ++it)
 			if(distance.Distance(*it) < distance.Distance(*bestIt))
 				bestIt = it;

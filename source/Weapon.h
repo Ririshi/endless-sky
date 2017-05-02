@@ -56,6 +56,7 @@ public:
 	double Reload() const;
 	double BurstReload() const;
 	int BurstCount() const;
+	double SwivelDegrees() const;
 	int Homing() const;
 	
 	int MissileStrength() const;
@@ -64,6 +65,9 @@ public:
 	// firing all at once (clustering) if the weapon is not an anti-missile and
 	// is not vulnerable to anti-missile, or has the "stream" attribute.
 	bool IsStreamed() const;
+	// Weapons with "no collision" will not collide with anything, and will just
+	// move until they die or split into submunitions.
+	bool NoCollision() const;
 	
 	double Velocity() const;
 	double RandomVelocity() const;
@@ -101,6 +105,7 @@ public:
 	
 	double TotalLifetime() const;
 	double Range() const;
+	double WeightedVelocity() const;
 	
 	
 protected:
@@ -128,13 +133,15 @@ private:
 	// This stores whether or not the weapon has been loaded.
 	bool isWeapon = false;
 	bool isStreamed = false;
-	
+	bool noCollision = false;
+		
 	// Attributes.
 	int lifetime = 0;
 	int randomLifetime = 0;
 	double reload = 1.;
 	double burstReload = 1.;
 	int burstCount = 1;
+	double swivelDegrees = 0;
 	int homing = 0;
 	
 	int missileStrength = 0;
@@ -174,6 +181,8 @@ private:
 	
 	double piercing = 0.;
 	
+	double optimalRange = 0.;
+	
 	// Cache the calculation of these values, for faster access.
 	mutable bool calculatedDamage[6] = {false, false, false, false, false, false};
 	mutable double totalLifetime = -1.;
@@ -187,11 +196,13 @@ inline int Weapon::RandomLifetime() const { return randomLifetime; }
 inline double Weapon::Reload() const { return reload; }
 inline double Weapon::BurstReload() const { return burstReload; }
 inline int Weapon::BurstCount() const { return burstCount; }
+inline double Weapon::SwivelDegrees() const { return swivelDegrees; }
 inline int Weapon::Homing() const { return homing; }
 
 inline int Weapon::MissileStrength() const { return missileStrength; }
 inline int Weapon::AntiMissile() const { return antiMissile; }
 inline bool Weapon::IsStreamed() const { return isStreamed; }
+inline bool Weapon::NoCollision() const { return noCollision; }
 
 inline double Weapon::Velocity() const { return velocity; }
 inline double Weapon::RandomVelocity() const { return randomVelocity; }
