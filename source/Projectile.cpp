@@ -296,13 +296,17 @@ void Projectile::CheckLock(const Ship &target)
 	// lost in a given five-second period. Then, since this check is done every
 	// second, test against the fifth root of that probability.
 	if(weapon->Tracking())
-		hasLock |= Check(weapon->Tracking(), base);
+	{
+		double probability = weapon->Tracking() / (1. + target.Attributes().Get("jamming"));
+		hasLock |= Check(probability, base);		
+	}
 	
 	// Optical tracking is about 15% for interceptors and 75% for medium warships.
 	if(weapon->OpticalTracking())
 	{
 		double weight = target.Mass() * target.Mass();
 		double probability = weapon->OpticalTracking() * weight / (200000. + weight);
+		probability /= (1. + target.Attributes().Get("optical jamming"));
 		hasLock |= Check(probability, base);
 	}
 	
@@ -310,10 +314,11 @@ void Projectile::CheckLock(const Ship &target)
 	if(weapon->InfraredTracking())
 	{
 		double probability = weapon->InfraredTracking() * min(1., target.Heat() + .1);
+		probability /= (1. + target.Attributes().Get("infrared jamming"));
 		hasLock |= Check(probability, base);
 	}
 	
-	// Radar tracking depends on whether the target ship has jamming capabilities.
+	// Radar tracking depends only on whether the target ship has radar jamming capabilities.
 	// Jamming of 1 is enough to increase your chance of dodging to 50%.
 	if(weapon->RadarTracking())
 	{
