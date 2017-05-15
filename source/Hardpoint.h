@@ -54,8 +54,8 @@ public:
 	bool WasFiring() const;
 	// If this is a burst weapon, get the number of shots left in the burst.
 	int BurstRemaining() const;
-	// Perform one step (i.e. decrement the reload count).
-	void Step();
+	// Perform steps.
+	void Step(int frames = 1);	
 	
 	// Adjust this weapon's aim by the given amount, relative to its maximum
 	// "turret turn" rate.

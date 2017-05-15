@@ -43,6 +43,10 @@ PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 
 using namespace std;
 
+namespace {
+	static constexpr int FRAMES_PER_DAY = 24 * 60 * 60 * 60;
+}
+
 
 
 // Completely clear all loaded information, to prepare for loading a file or
@@ -600,9 +604,9 @@ void PlayerInfo::IncrementDate()
 	if(!message.empty())
 		Messages::Add(message);
 	
-	// Reset the reload counters for all your ships.
+	// Advance the reload counters on all the player's weapons by a day's frames.
 	for(const shared_ptr<Ship> &ship : ships)
-		ship->GetArmament().FinishLoading();
+		ship->GetArmament().Step(*ship, FRAMES_PER_DAY);
 }
 
 

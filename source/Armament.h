@@ -68,7 +68,7 @@ public:
 	bool FireAntiMissile(int index, Ship &ship, const Projectile &projectile, std::list<Effect> &effects);
 	
 	// Update the reload counters.
-	void Step(const Ship &ship);
+	void Step(const Ship &ship, int frames = 1);
 	
 	
 private:
