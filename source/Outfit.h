@@ -54,6 +54,7 @@ public:
 	
 	double Get(const std::string &attribute) const;
 	const std::map<std::string, double> &Attributes() const;
+	const std::map<std::string, double> &Tags() const;
 	
 	// Determine whether the given number of instances of the given outfit can
 	// be added to a ship with the attributes represented by this instance. If
@@ -65,6 +66,9 @@ public:
 	// Modify this outfit's attributes.
 	void Add(const std::string &attribute, double value = 1.);
 	void Reset(const std::string &attribute, double value = 0.);
+	// Copy tags from another outfit: used to set the base tags of one
+	// ship to its base class values.
+	void CopyTags (const Outfit &base);
 	
 	// Get this outfit's engine flare sprites, if any.
 	const std::vector<std::pair<Body, int>> &FlareSprites() const;
@@ -84,6 +88,7 @@ private:
 	int64_t cost = 0;
 	
 	std::map<std::string, double> attributes;
+	std::map<std::string, double> tags;
 	
 	std::vector<std::pair<Body, int>> flareSprites;
 	std::map<const Sound *, int> flareSounds;

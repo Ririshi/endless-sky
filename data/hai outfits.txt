@@ -10,6 +10,7 @@
 
 outfit "Pulse Cannon"
 	category "Guns"
+	tags alien hai weapon
 	cost 130000
 	thumbnail "outfit/pulse cannon"
 	"mass" 13
@@ -32,6 +33,7 @@ outfit "Pulse Cannon"
 
 outfit "Pulse Turret"
 	category "Turrets"
+	tags alien hai weapon
 	cost 590000
 	thumbnail "outfit/pulse turret"
 	"mass" 34
@@ -57,6 +59,7 @@ outfit "Pulse Turret"
 
 outfit "Ion Cannon"
 	category "Guns"
+	tags alien hai weapon
 	cost 490000
 	thumbnail "outfit/ion cannon"
 	"mass" 47
@@ -83,6 +86,7 @@ outfit "Ion Cannon"
 
 outfit "Railgun Slug"
 	category "Ammunition"
+	tags alien hai
 	cost 60
 	thumbnail "outfit/railslug"
 	"mass" 0.02
@@ -91,6 +95,7 @@ outfit "Railgun Slug"
 
 outfit "Railgun"
 	category "Secondary Weapons"
+	tags alien hai weapon
 	cost 20000
 	thumbnail "outfit/railgun"
 	"mass" 4
@@ -138,6 +143,7 @@ outfit "rslug"
 
 outfit "Hai Tracker"
 	category "Ammunition"
+	tags alien hai
 	cost 1000
 	thumbnail "outfit/hai tracker"
 	"mass" .2
@@ -146,6 +152,7 @@ outfit "Hai Tracker"
 
 outfit "Tracker Storage Pod"
 	category "Ammunition"
+	tags alien hai
 	cost 28000
 	thumbnail "outfit/hai tracker storage"
 	"mass" 4.4
@@ -156,6 +163,7 @@ outfit "Tracker Storage Pod"
 
 outfit "Hai Tracker Pod"
 	category "Secondary Weapons"
+	tags alien hai weapon
 	cost 150000
 	thumbnail "outfit/hai tracker pod"
 	"mass" 8
@@ -194,6 +202,7 @@ outfit "Hai Tracker Pod"
 
 outfit "Bullfrog Anti-Missile"
 	category "Turrets"
+	tags alien hai anti-missile
 	cost 55000
 	thumbnail "outfit/anti-missile hai"
 	"mass" 10
@@ -215,6 +224,7 @@ outfit "Bullfrog Anti-Missile"
 
 outfit "Chameleon Anti-Missile"
 	category "Turrets"
+	tags alien hai anti-missile
 	cost 140000
 	thumbnail "outfit/heavy anti-missile hai"
 	"mass" 22
@@ -236,6 +246,7 @@ outfit "Chameleon Anti-Missile"
 
 outfit "Hai Corundum Regenerator"
 	category "Systems"
+	tags alien hai
 	cost 300000
 	thumbnail "outfit/small regenerator hai"
 	"mass" 16
@@ -248,6 +259,7 @@ outfit "Hai Corundum Regenerator"
 
 outfit "Hai Diamond Regenerator"
 	category "Systems"
+	tags alien hai
 	cost 1150000
 	thumbnail "outfit/large regenerator hai"
 	"mass" 49
@@ -260,6 +272,7 @@ outfit "Hai Diamond Regenerator"
 
 outfit "Hai Williwaw Cooling"
 	category "Systems"
+	tags alien hai
 	cost 15000
 	thumbnail "outfit/cooling ducts hai"
 	"mass" 8
@@ -280,6 +293,7 @@ outfit "Quantum Keystone"
 
 outfit "Hai Chasm Batteries"
 	plural "Hai Chasm Batteries"
+	tags alien hai
 	category "Power"
 	cost 18000
 	thumbnail "outfit/tiny battery hai"
@@ -290,6 +304,7 @@ outfit "Hai Chasm Batteries"
 
 outfit "Hai Fissure Batteries"
 	plural "Hai Fissure Batteries"
+	tags alien hai
 	category "Power"
 	cost 22000
 	thumbnail "outfit/small battery hai"
@@ -300,6 +315,7 @@ outfit "Hai Fissure Batteries"
 
 outfit "Hai Gorge Batteries"
 	plural "Hai Gorge Batteries"
+	tags alien hai
 	category "Power"
 	cost 55000
 	thumbnail "outfit/medium battery hai"
@@ -310,6 +326,7 @@ outfit "Hai Gorge Batteries"
 
 outfit "Hai Ravine Batteries"
 	plural "Hai Ravine Batteries"
+	tags alien hai
 	category "Power"
 	cost 124000
 	thumbnail "outfit/large battery hai"
@@ -320,6 +337,7 @@ outfit "Hai Ravine Batteries"
 
 outfit "Hai Valley Batteries"
 	plural "Hai Valley Batteries"
+	tags alien hai
 	category "Power"
 	cost 300000
 	thumbnail "outfit/huge battery hai"
@@ -331,6 +349,7 @@ outfit "Hai Valley Batteries"
 
 outfit "Boulder Reactor"
 	category "Power"
+	tags alien hai
 	cost 5750000
 	thumbnail "outfit/fusion hai"
 	"mass" 90
@@ -341,6 +360,7 @@ outfit "Boulder Reactor"
 
 outfit "Geode Reactor"
 	category "Power"
+	tags alien hai
 	cost 1750000
 	thumbnail "outfit/fission hai"
 	"mass" 58
@@ -351,6 +371,7 @@ outfit "Geode Reactor"
 
 outfit "Pebble Core"
 	category "Power"
+	tags alien hai
 	cost 1050000
 	thumbnail "outfit/dwarf core hai"
 	"mass" 32
@@ -361,6 +382,7 @@ outfit "Pebble Core"
 
 outfit "Sand Cell"
 	category "Power"
+	tags alien hai
 	cost 45000
 	thumbnail "outfit/fuel cell hai"
 	"mass" 24
@@ -373,6 +395,7 @@ outfit "Sand Cell"
 outfit `"Baellie" Atomic Engines`
 	plural `"Baellie" Atomic Engines`
 	category "Engines"
+	tags alien hai
 	"cost" 240000
 	thumbnail "outfit/tiny atomic engines hai"
 	"mass" 24
@@ -391,6 +414,7 @@ outfit `"Baellie" Atomic Engines`
 
 outfit `"Basrem" Atomic Thruster`
 	category "Engines"
+	tags alien hai
 	"cost" 150000
 	thumbnail "outfit/tiny atomic thruster hai"
 	"mass" 18
@@ -406,6 +430,7 @@ outfit `"Basrem" Atomic Thruster`
 
 outfit `"Benga" Atomic Thruster`
 	category "Engines"
+	tags alien hai
 	"cost" 300000
 	thumbnail "outfit/small atomic thruster hai"
 	"mass" 28
@@ -421,6 +446,7 @@ outfit `"Benga" Atomic Thruster`
 
 outfit `"Biroo" Atomic Thruster`
 	category "Engines"
+	tags alien hai
 	"cost" 610000
 	thumbnail "outfit/medium atomic thruster hai"
 	"mass" 44
@@ -436,6 +462,7 @@ outfit `"Biroo" Atomic Thruster`
 
 outfit `"Bondir" Atomic Thruster`
 	category "Engines"
+	tags alien hai
 	"cost" 1100000
 	thumbnail "outfit/large atomic thruster hai"
 	"mass" 63
@@ -451,6 +478,7 @@ outfit `"Bondir" Atomic Thruster`
 
 outfit `"Bufaer" Atomic Thruster`
 	category "Engines"
+	tags alien hai
 	"cost" 2400000
 	thumbnail "outfit/huge atomic thruster hai"
 	"mass" 104
@@ -466,6 +494,7 @@ outfit `"Bufaer" Atomic Thruster`
 
 outfit `"Basrem" Atomic Steering`
 	category "Engines"
+	tags alien hai
 	"cost" 120000
 	thumbnail "outfit/tiny atomic steering hai"
 	"mass" 12
@@ -478,6 +507,7 @@ outfit `"Basrem" Atomic Steering`
 
 outfit `"Benga" Atomic Steering`
 	category "Engines"
+	tags alien hai
 	"cost" 250000
 	thumbnail "outfit/small atomic steering hai"
 	"mass" 20
@@ -490,6 +520,7 @@ outfit `"Benga" Atomic Steering`
 
 outfit `"Biroo" Atomic Steering`
 	category "Engines"
+	tags alien hai
 	"cost" 530000
 	thumbnail "outfit/medium atomic steering hai"
 	"mass" 32
@@ -502,6 +533,7 @@ outfit `"Biroo" Atomic Steering`
 
 outfit `"Bondir" Atomic Steering`
 	category "Engines"
+	tags alien hai
 	"cost" 950000
 	thumbnail "outfit/large atomic steering hai"
 	"mass" 49
@@ -514,6 +546,7 @@ outfit `"Bondir" Atomic Steering`
 
 outfit `"Bufaer" Atomic Steering`
 	category "Engines"
+	tags alien hai
 	"cost" 2100000
 	thumbnail "outfit/huge atomic steering hai"
 	"mass" 76

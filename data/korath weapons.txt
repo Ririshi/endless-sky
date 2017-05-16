@@ -10,6 +10,7 @@
 
 outfit "Korath Grab-Strike"
 	category "Turrets"
+	tags alien korath weapon
 	cost 821000
 	thumbnail "outfit/grab-strike"
 	"mass" 52
@@ -54,6 +55,7 @@ effect "grab-strike impact"
 
 outfit "Korath Banisher"
 	category "Turrets"
+	tags alien korath weapon
 	cost 943000
 	thumbnail "outfit/banisher"
 	"mass" 41
@@ -89,6 +91,7 @@ effect "banisher impact"
 
 outfit "Korath Warder"
 	category "Turrets"
+	tags alien korath anti-missile
 	cost 845000
 	thumbnail "outfit/warder"
 	"mass" 28
@@ -119,6 +122,7 @@ effect "korath warder"
 
 outfit "Korath Fire-Lance"
 	category "Guns"
+	tags alien korath weapon
 	cost 697000
 	thumbnail "outfit/fire-lance"
 	"mass" 22
@@ -153,6 +157,7 @@ effect "fire-lance impact"
 
 outfit "Korath Repeater"
 	category "Guns"
+	tags alien korath "kor sestor" weapon
 	cost 306000
 	thumbnail "outfit/repeater"
 	"mass" 11
@@ -191,6 +196,7 @@ effect "repeater impact"
 
 outfit "Korath Repeater Turret"
 	category "Turrets"
+	tags alien korath "kor sestor" weapon
 	cost 874000
 	thumbnail "outfit/repeater turret"
 	"mass" 29
@@ -223,6 +229,7 @@ outfit "Korath Repeater Turret"
 
 outfit "Korath Piercer"
 	category "Ammunition"
+	tags alien korath "kor sestor"
 	cost 3500
 	thumbnail "outfit/piercer"
 	"mass" .3
@@ -231,6 +238,7 @@ outfit "Korath Piercer"
 
 outfit "Korath Piercer Rack"
 	category "Ammunition"
+	tags alien korath "kor sestor"
 	cost 56000
 	thumbnail "outfit/korath piercer storage"
 	"mass" 2.2
@@ -241,6 +249,7 @@ outfit "Korath Piercer Rack"
 
 outfit "Korath Piercer Launcher"
 	category "Secondary Weapons"
+	tags alien korath "kor sestor" weapon
 	cost 593000
 	thumbnail "outfit/piercer launcher"
 	"mass" 18
@@ -313,6 +322,7 @@ effect "piercer explosion"
 
 outfit "Korath Detainer"
 	category "Guns"
+	tags alien korath "kor sestor" weapon
 	cost 1340000
 	thumbnail "outfit/detainer"
 	"mass" 76
@@ -375,6 +385,7 @@ effect "detainer smoke"
 
 outfit "Korath Mine"
 	category "Ammunition"
+	tags alien korath "kor mereti"
 	cost 3500
 	thumbnail "outfit/korath mine"
 	"mass" .7
@@ -383,6 +394,7 @@ outfit "Korath Mine"
 
 outfit "Korath Mine Rack"
 	category "Ammunition"
+	tags alien korath "kor mereti"
 	cost 31500
 	thumbnail "outfit/korath mine storage"
 	"mass" 2.7
@@ -393,6 +405,7 @@ outfit "Korath Mine Rack"
 
 outfit "Korath Minelayer"
 	category "Secondary Weapons"
+	tags alien korath "kor mereti" weapon
 	cost 1073000
 	thumbnail "outfit/korath minelayer"
 	"mass" 36
@@ -473,6 +486,7 @@ effect "minelayer split"
 
 outfit "Korath Disruptor"
 	category "Turrets"
+	tags alien korath "kor mereti" weapon
 	cost 983000
 	thumbnail "outfit/disruptor"
 	"mass" 35
@@ -511,6 +525,7 @@ effect "disruptor impact"
 
 outfit "Korath Slicer"
 	category "Guns"
+	tags alien korath "kor mereti" weapon
 	cost 832000
 	thumbnail "outfit/slicer"
 	"mass" 46
@@ -536,6 +551,7 @@ outfit "Korath Slicer"
 
 outfit "Korath Slicer Turret"
 	category "Turrets"
+	tags alien korath "kor mereti" weapon
 	cost 1473000
 	thumbnail "outfit/slicer turret"
 	"mass" 59
