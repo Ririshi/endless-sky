@@ -198,7 +198,10 @@ void Ship::Load(const DataNode &node)
 		else if(child.Token(0) == "cargo")
 			cargo.Load(child);
 		else if(child.Token(0) == "crew" && child.Size() >= 2)
+		{
 			crew = static_cast<int>(child.Value(1));
+			assignedCrew = crew;			
+		}
 		else if(child.Token(0) == "fuel" && child.Size() >= 2)
 			fuel = child.Value(1);
 		else if(child.Token(0) == "shields" && child.Size() >= 2)
@@ -366,18 +369,28 @@ void Ship::FinishLoading()
 	for(const Hardpoint &weapon : armament.Get())
 		weaponRadius = max(weaponRadius, weapon.GetPoint().Length());
 	
-	// Recharge, but don't recharge crew or fuel if not in the parent's system.
-	// Do not recharge if this ship's starting state was saved.
-	if(!hull)
-	{
-		shared_ptr<const Ship> parent = GetParent();
-		Recharge(!parent || currentSystem == parent->currentSystem);
-	}
+	// Finish initializing the loaded ship, but don't recharge if not in the
+	// parent's system, and don't recharge any saved value.
+	shared_ptr<const Ship> parent = GetParent();
+	bool recharge = !parent || currentSystem == parent->currentSystem;
+	
+	if((assignedCrew == -1) && recharge)
+		crew = min<int>(max(crew, RequiredCrew()), attributes.Get("bunks"));
+	if(!fuel && recharge)
+		fuel = attributes.Get("fuel capacity");
+	if(!shields && (recharge || attributes.Get("hull repair rate")))
+		shields = attributes.Get("shields");
+	if(!hull && (recharge || attributes.Get("shield generation")))
+		hull = attributes.Get("hull");
 	else
 	{
 		isDisabled = true;
 		isDisabled = IsDisabled();
 	}
+	if(!energy && (recharge || attributes.Get("energy generation")))
+		energy = attributes.Get("energy capacity");
+		
+	heat = IdleHeat();
 }
 
 
@@ -1766,20 +1779,9 @@ bool Ship::IsDestroyed() const
 
 
 
-// Recharge and repair this ship (e.g. because it has landed).
-void Ship::Recharge(bool atSpaceport)
+// Repair this ship.
+void Ship::Repair(bool atSpaceport)
 {
-	if(IsDestroyed())
-		return;
-	
-	if(atSpaceport)
-	{
-		crew = min<int>(max(crew, RequiredCrew()), attributes.Get("bunks"));
-		fuel = attributes.Get("fuel capacity");
-	}
-	pilotError = 0;
-	pilotOkay = 0;
-	
 	if(!personality.IsDerelict())
 	{
 		if(atSpaceport || attributes.Get("shield generation"))
@@ -1789,6 +1791,27 @@ void Ship::Recharge(bool atSpaceport)
 		if(atSpaceport || attributes.Get("energy generation"))
 			energy = attributes.Get("energy capacity");
 	}
+}
+
+
+
+// Recharge and repair this ship (e.g. because it has landed).
+void Ship::Recharge(bool atSpaceport)
+{
+	if(IsDestroyed())
+		return;
+	
+	if(atSpaceport)
+	{
+		// Clear any assigned crew state from an initial load.
+		assignedCrew = -1;
+		crew = min<int>(max(crew, RequiredCrew()), attributes.Get("bunks"));
+		fuel = attributes.Get("fuel capacity");
+	}
+	pilotError = 0;
+	pilotOkay = 0;
+	
+	Repair(atSpaceport);
 	heat = IdleHeat();
 	ionization = 0.;
 	disruption = 0.;
@@ -2012,6 +2035,16 @@ int Ship::RequiredCrew() const
 	
 	// Drones do not need crew, but all other ships need at least one.
 	return max<int>(1, attributes.Get("required crew"));
+}
+
+
+
+int Ship::FillCrew() const
+{	
+	if(assignedCrew != -1)
+		return assignedCrew;
+	
+	return RequiredCrew();
 }
 
 
