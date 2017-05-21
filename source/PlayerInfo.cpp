@@ -2079,8 +2079,9 @@ void PlayerInfo::UpdateAutoConditions()
 	conditions["passenger space"] = 0;
 	
 	// Set outfit tags for your flagship in conditions.
-	for(const auto &at : Flagship()->Attributes().Tags())
-		conditions["tag: " + at.first] += at.second;	
+	if(flagship)
+		for(const auto &at : flagship->Attributes().Tags())
+			conditions["tag: " + at.first] += at.second;	
 			
 	for(const shared_ptr<Ship> &ship : ships)
 		if(!ship->IsParked() && !ship->IsDisabled() && ship->GetSystem() == system)
