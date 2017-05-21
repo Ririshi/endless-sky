@@ -2063,15 +2063,27 @@ void PlayerInfo::UpdateAutoConditions()
 	auto last = conditions.lower_bound("ships:!");
 	if(first != last)
 		conditions.erase(first, last);
+	first = conditions.lower_bound("flagship model: ");
+	last = conditions.lower_bound("flagship model:!");
+	if(first != last)
+		conditions.erase(first, last);	
+	conditions["ships: independent"] = 0;
+	
 	// Store special conditions for cargo and passenger space.
 	conditions["cargo space"] = 0;
 	conditions["passenger space"] = 0;
+	
+	// Store the player's flagship model as a condition.
+	conditions["flagship model: " + (flagship ? flagship->ModelName() : "none")] = 1;
+	
 	for(const shared_ptr<Ship> &ship : ships)
 		if(!ship->IsParked() && !ship->IsDisabled() && ship->GetSystem() == system)
 		{
 			conditions["cargo space"] += ship->Attributes().Get("cargo space");
 			conditions["passenger space"] += ship->Attributes().Get("bunks") - ship->RequiredCrew();
 			++conditions["ships: " + ship->Attributes().Category()];
+			if(!ship->CanBeCarried())
+				++conditions["ships: independent"];
 		}
 }
 
