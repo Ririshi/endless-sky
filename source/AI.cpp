@@ -1512,7 +1512,7 @@ void AI::Attack(Ship &ship, Command &command, const Ship &target)
 		if(outfit && !weapon.IsAntiMissile())
 		{
 			isArmed = true;
-			if(!outfit->Ammo() || ship.OutfitCount(outfit->Ammo()))
+			if(!outfit->Ammo() || ship.OutfitCount(outfit->Ammo()) >= outfit->AmmoUsed())
 				hasAmmo = true;
 			// The missile boat AI should be applied at 1000 pixels range if
 			// all weapons are homing or turrets, and at 2000 if not.

@@ -776,6 +776,9 @@ void Engine::Draw() const
 			continue;
 		
 		string amount = to_string(it.second);
+		// If multiple units of ammo are used per shot, show this number in parentheses.
+		if(it.first->AmmoUsed() > 1)
+			amount += " (" + to_string(it.first->AmmoUsed()) + ")";
 		Point textPos = pos + Point(55 - font.Width(amount), -(30 - font.Height()) / 2);
 		font.Draw(amount, textPos, isSelected ? selectedColor : unselectedColor);
 	}
