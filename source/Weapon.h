@@ -74,6 +74,7 @@ public:
 	double Turn() const;
 	double Inaccuracy() const;
 	double TurretTurn() const;
+	double FiringArc() const;
 	
 	double Tracking() const;
 	double OpticalTracking() const;
@@ -154,6 +155,7 @@ private:
 	double turn = 0.;
 	double inaccuracy = 0.;
 	double turretTurn = 0.;
+	double firingArc = 0;
 	
 	double tracking = 0.;
 	double opticalTracking = 0.;
@@ -208,6 +210,7 @@ inline double Weapon::HardpointOffset() const { return hardpointOffset; }
 inline double Weapon::Turn() const { return turn; }
 inline double Weapon::Inaccuracy() const { return inaccuracy; }
 inline double Weapon::TurretTurn() const { return turretTurn; }
+inline double Weapon::FiringArc() const { return firingArc; }
 
 inline double Weapon::Tracking() const { return tracking; }
 inline double Weapon::OpticalTracking() const { return opticalTracking; }

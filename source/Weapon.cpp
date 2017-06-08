@@ -108,6 +108,9 @@ void Weapon::LoadWeapon(const DataNode &node)
 				inaccuracy = value;
 			else if(key == "turret turn")
 				turretTurn = value;
+			else if(key == "firing arc")
+				// It's easier to work with the angle we can swivel either side.
+				firingArc = value * .5;
 			else if(key == "tracking")
 				tracking = max(0., min(1., value));
 			else if(key == "optical tracking")
