@@ -47,6 +47,7 @@ public:
 	bool IsHoming() const;
 	bool IsAntiMissile() const;
 	bool CanAim() const;
+	double FiringArc() const;
 	
 	// Check if this weapon is ready to fire.
 	bool IsReady() const;
@@ -86,6 +87,7 @@ private:
 	Angle angle;
 	// Reload timers and other attributes.
 	double reload = 0.;
+	double firingArc = 0.;
 	double burstReload = 0.;
 	int burstCount = 0;
 	bool isTurret = false;
