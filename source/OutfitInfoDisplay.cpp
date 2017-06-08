@@ -338,6 +338,7 @@ void OutfitInfoDisplay::UpdateAttributes(const Outfit &outfit)
 		"firing energy / shot:",
 		"firing heat / shot:",
 		"firing fuel / shot:",
+		"firing arc:",
 		"inaccuracy:",
 		"blast radius:",
 		"missile strength:",
@@ -353,6 +354,8 @@ void OutfitInfoDisplay::UpdateAttributes(const Outfit &outfit)
 		outfit.FiringEnergy(),
 		outfit.FiringHeat(),
 		outfit.FiringFuel(),
+		// For outfitting display, convert back to showing the full firing arc.
+		outfit.FiringArc() * 2.,
 		outfit.Inaccuracy(),
 		outfit.BlastRadius(),
 		static_cast<double>(outfit.MissileStrength()),
