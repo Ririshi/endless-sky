@@ -167,6 +167,18 @@ Point Angle::Rotate(const Point &point) const
 
 
 
+// Return the shortest distance between two angles in degrees.
+double Angle::Distance(const Angle &compare) const
+{
+	double distance = (angle - compare.angle) / DEG_TO_STEP;
+
+	// Map the distance inside the range (-180,180].
+	distance -= 360 * ((int) distance / 180);
+	return distance;
+}
+
+
+
 // Constructor using Angle's internal representation.
 Angle::Angle(int32_t angle)
 	: angle(angle)
