@@ -1452,9 +1452,12 @@ void AI::Attack(Ship &ship, Command &command, const Ship &target)
 			isArmed = true;
 			if(!outfit->Ammo() || ship.OutfitCount(outfit->Ammo()))
 				hasAmmo = true;
-			// The missile boat AI should be applied at 1000 pixels range if
-			// all weapons are homing or turrets, and at 2000 if not.
-			double multiplier = (weapon.IsHoming() || weapon.IsTurret()) ? 1. : .5;
+			// The missile boat AI should be applied at 1000 pixels range if all
+			// weapons are homing or 360 degree turrets, 2000 if all weapons are
+			// fixed guns, and range between 1000-2000 if all weapons have a finite
+			// swivel arc.
+			double multiplier = weapon.IsHoming() ? 1. : .5 * (1. + weapon.FiringArc() / 180.);
+				
 			shortestRange = min(multiplier * outfit->Range(), shortestRange);
 		}
 	}
@@ -1978,15 +1981,16 @@ Command AI::AutoFire(const Ship &ship, bool secondary) const
 		const Outfit *outfit = weapon.GetOutfit();
 		double vp = outfit->Velocity() + .5 * outfit->RandomVelocity();
 		double lifetime = outfit->TotalLifetime();
+		Angle facing = ship.Facing() + weapon.GetAngle();
 		
-		if(currentTarget && (weapon.IsHoming() || weapon.IsTurret()))
+		if(currentTarget && (weapon.IsHoming() || weapon.FiringArc()))
 		{
 			bool hasBoarded = Has(ship, currentTarget, ShipEvent::BOARD);
 			if(currentTarget->IsDisabled() && spareDisabled && !hasBoarded && !disabledOverride)
 				continue;
 			// Don't fire turrets at targets that are accelerating or decelerating
 			// rapidly due to hyperspace jumping.
-			if(weapon.IsTurret() && currentTarget->IsHyperspacing() && currentTarget->Velocity().Length() > 10.)
+			if(weapon.FiringArc() && currentTarget->IsHyperspacing() && currentTarget->Velocity().Length() > 10.)
 				continue;
 			// Don't fire secondary weapons as targets that have started jumping.
 			if(outfit->Icon() && currentTarget->IsEnteringHyperspace())
@@ -2005,6 +2009,12 @@ Command AI::AutoFire(const Ship &ship, bool secondary) const
 			// velocity of the ship firing it into account.
 			if(weapon.IsHoming())
 				v = currentTarget->Velocity();
+				
+			// If this is a swivel weapon that cannot fire through a full 360 degree
+			// arc, check if the target is within the possible firing arc.
+			if(!weapon.IsHoming() && fabs(Angle(p).Distance(facing)) > weapon.FiringArc())
+				continue;
+				
 			// Calculate how long it will take the projectile to reach its target.
 			double steps = Armament::RendezvousTime(p, v, vp);
 			if(steps == steps && steps <= lifetime)
@@ -2031,7 +2041,7 @@ Command AI::AutoFire(const Ship &ship, bool secondary) const
 			p += v;
 			
 			// Get the vector the weapon will travel along.
-			v = (ship.Facing() + weapon.GetAngle()).Unit() * vp - v;
+			v = facing.Unit() * vp - v;
 			// Extrapolate over the lifetime of the projectile.
 			v *= lifetime;
 			

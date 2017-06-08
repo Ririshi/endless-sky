@@ -38,12 +38,13 @@ public:
 	// projectiles of this weapon should originate. This point must be
 	// rotated to take the ship's current facing direction into account.
 	const Point &GetPoint() const;
-	// Get the convergence angle adjustment of this weapon (if it's a gun).
+	// Get the angle of the weapon with respect to the ship's facing.
 	const Angle &GetAngle() const;
 	// Shortcuts for querying weapon characteristics.
 	bool IsTurret() const;
 	bool IsHoming() const;
 	bool IsAntiMissile() const;
+	double FiringArc() const;
 	
 	// Check if this weapon is ready to fire.
 	bool IsReady() const;
@@ -77,11 +78,16 @@ private:
 	// Hardpoint location, in world coordinates relative to the ship's center.
 	Point point;
 	// Angle adjustment for convergence.
+	Angle convergence;
+	// Angle adjustment for targeting.
 	Angle angle;
+	// Angle weapon will fire.
+	Angle aim;
 	// Reload timers and other attributes.
 	double reload = 0.;
 	double burstReload = 0.;
 	int burstCount = 0;
+	double firingArc = 0.;
 	bool isTurret = false;
 	bool isFiring = false;
 	bool wasFiring = false;

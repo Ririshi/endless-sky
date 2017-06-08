@@ -1,4 +1,4 @@
-/* Hardpoint.cpp
+﻿/* Hardpoint.cpp
 Copyright (c) 2016 by Michael Zahniser
 
 Endless Sky is free software: you can redistribute it and/or modify it under the
@@ -67,7 +67,7 @@ const Point &Hardpoint::GetPoint() const
 
 
 
-// Get the convergence angle adjustment of this weapon (guns only, not turrets).
+// Get the angle of the weapon with respect to the ship's facing.
 const Angle &Hardpoint::GetAngle() const
 {
 	return angle;
@@ -124,6 +124,14 @@ int Hardpoint::BurstRemaining() const
 
 
 
+// Find out how many degrees this weapon can swivel, if at all.
+double Hardpoint::FiringArc() const
+{
+	return firingArc;
+}
+
+
+
 // Perform one step (i.e. decrement the reload count).
 void Hardpoint::Step()
 {
@@ -164,23 +172,11 @@ void Hardpoint::Fire(Ship &ship, list<Projectile> &projectiles, list<Effect> &ef
 	// If you are boarding your target, do not fire on it.
 	if(ship.IsBoarding() || ship.Commands().Has(Command::BOARD))
 		target.reset();
+		
+	// Adjust the firing angle for shot convergence (gun harmonization).
+	aim += convergence;
 	
-	// If this is a fixed gun, or it if is a turret but you have no target
-	// selected, it should fire straight forward, angled in slightly to cause
-	// the shots to converge (gun harmonization).
-	if(!isTurret || !target || !target->IsTargetable())
-	{
-		// If this is a turret and it is not tracking a target, reset its angle
-		// to the proper convergence angle.
-		if(isTurret)
-		{
-			double d = outfit->Range();
-			// Projectiles with a range of zero should fire straight forward. A
-			// special check is needed to avoid divide by zero errors.
-			angle = Angle(d <= 0. ? 0. : -asin(point.X() / d) * TO_DEG);
-		}
-	}
-	else
+	if(firingArc && target && target->IsTargetable())
 	{
 		// Take the ship's targeting confusion into account. This is mainly an
 		// effect to make turrets look less unnaturally precise.
@@ -195,13 +191,23 @@ void Hardpoint::Fire(Ship &ship, list<Projectile> &projectiles, list<Effect> &ef
 		if(!(steps < outfit->TotalLifetime()))
 			steps = outfit->TotalLifetime();
 		
-		// Aim toward where the target will be at the calculated rendezvous time.
-		angle = Angle(p + steps * v) - aim;
+		// Get the angle to the target at the calculated rendezvous time.
+		Angle targetAngle = Angle(p + steps * v);
+		
+		// If the target is outside the range this weapon can swivel, aim as
+		// far toward the target as possible.
+		if(fabs(targetAngle.Distance(aim)) <= firingArc)
+			aim = targetAngle;
+		else if(targetAngle.Distance(aim) > 0.)
+			aim += Angle(firingArc);
+		else
+			aim -= Angle(firingArc);
 	}
 	
-	// Apply the aim and hardpoint offset.
-	aim += angle;
+	// Apply the hardpoint offset.
 	start += outfit->HardpointOffset() * aim.Unit();
+	// Store the weapon angle (the angle off facing) for e.g. drawing the turret.
+	angle = aim - ship.Facing();
 	
 	// Create a new projectile, originating from this hardpoint.
 	projectiles.emplace_back(ship, start, aim, outfit);
@@ -232,9 +238,11 @@ bool Hardpoint::FireAntiMissile(Ship &ship, const Projectile &projectile, list<E
 	Point offset = projectile.Position() - start;
 	if(offset.Length() > range)
 		return false;
+	Angle aim(offset);
+	if(fabs(aim.Distance(ship.Facing())) > outfit->FiringArc())
+		return false;
 	
 	// Firing effects are displayed at the anti-missile hardpoint that just fired.
-	Angle aim(offset);
 	angle = aim - ship.Facing();
 	start += outfit->HardpointOffset() * aim.Unit();
 	CreateEffects(outfit->FireEffects(), start, ship.Velocity(), aim, effects);
@@ -277,7 +285,14 @@ void Hardpoint::Install(const Outfit *outfit)
 		double d = outfit->Range();
 		// Projectiles with a range of zero should fire straight forward. A
 		// special check is needed to avoid divide by zero errors.
-		angle = Angle(d <= 0. ? 0. : -asin(point.X() / d) * TO_DEG);
+		convergence = Angle(d <= 0. ? 0. : -asin(point.X() / d) * TO_DEG);
+		
+		firingArc = outfit->FiringArc();	
+		
+		// By default, every turret should be able to fire in a full 180
+		// degrees either way.
+		if(!firingArc && isTurret)
+			firingArc = 180.;
 	}
 }
 
