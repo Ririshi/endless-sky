@@ -36,6 +36,8 @@ void Weapon::LoadWeapon(const DataNode &node)
 			isStreamed = true;
 		else if(key == "cluster")
 			isClustered = true;
+		else if(key == "no collision")
+			noCollision = true;
 		else if(child.Size() < 2)
 			child.PrintTrace("Skipping weapon attribute with no value specified:");
 		else if(key == "sprite")
