@@ -722,16 +722,16 @@ shared_ptr<Ship> AI::FindTarget(const Ship &ship) const
 			
 			// If your personality it to disable ships rather than destroy them,
 			// never target disabled ships.
-			if(it->IsDisabled() && !person.Plunders()
+			if(it->IsDisabled() && !person.Plunders() && !person.IsMurderous()
 					&& (person.Disables() || (!person.IsNemesis() && it != oldTarget)))
 				continue;
 			
-			if(!person.Plunders())
+			if(!person.Plunders() && !person.IsMurderous())
 				range += 5000. * it->IsDisabled();
 			else
 			{
 				bool hasBoarded = Has(ship, it, ShipEvent::BOARD);
-				// Don't plunder unless there are no "live" enemies nearby.
+				// Don't plunder or kill unless there are no "live" enemies nearby.
 				range += 2000. * (2 * it->IsDisabled() - !hasBoarded);
 			}
 			// Check if this target has any weapons (not counting anti-missiles).
