@@ -51,6 +51,7 @@ public:
 	const std::map<const Outfit *, int> &Submunitions() const;
 	
 	// Accessor functions for various attributes.
+	int AmmoUsed() const;
 	int Lifetime() const;
 	int RandomLifetime() const;
 	double Reload() const;
@@ -139,6 +140,9 @@ private:
 	bool isStreamed = false;
 	bool noCollision = false;
 	
+	// Ammunition used per shot.
+	int ammoUsed = 0;
+	
 	// Attributes.
 	int lifetime = 0;
 	int randomLifetime = 0;
@@ -195,6 +199,7 @@ private:
 
 
 // Inline the accessors because they get called so frequently.
+inline int Weapon::AmmoUsed() const { return ammoUsed; }
 inline int Weapon::Lifetime() const { return lifetime; }
 inline int Weapon::RandomLifetime() const { return randomLifetime; }
 inline double Weapon::Reload() const { return reload; }

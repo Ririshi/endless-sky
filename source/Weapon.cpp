@@ -46,8 +46,12 @@ void Weapon::LoadWeapon(const DataNode &node)
 			hardpointSprite.LoadSprite(child);
 		else if(key == "sound")
 			sound = Audio::Get(child.Token(1));
-		else if(key == "ammo")
+		else if(key == "ammo" && child.Size() >= 2)
+		{
 			ammo = GameData::Outfits().Get(child.Token(1));
+			ammoUsed = (child.Size() >= 3) ? child.Value(2) : 1;			
+		}
+		else if(child.Token(0) == "icon" && child.Size() >= 2)
 		else if(key == "icon")
 			icon = SpriteSet::Get(child.Token(1));
 		else if(key == "fire effect")

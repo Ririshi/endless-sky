@@ -2438,7 +2438,7 @@ bool Ship::CanFire(const Outfit *outfit) const
 	if(outfit->Ammo())
 	{
 		auto it = outfits.find(outfit->Ammo());
-		if(it == outfits.end() || it->second <= 0)
+		if(it == outfits.end() || it->second < outfit->AmmoUsed())
 			return false;
 	}
 	
@@ -2459,7 +2459,7 @@ void Ship::ExpendAmmo(const Outfit *outfit)
 	if(!outfit)
 		return;
 	if(outfit->Ammo())
-		AddOutfit(outfit->Ammo(), -1);
+		AddOutfit(outfit->Ammo(), -outfit->AmmoUsed());
 	
 	energy -= outfit->FiringEnergy();
 	fuel -= outfit->FiringFuel();
