@@ -51,7 +51,6 @@ void Weapon::LoadWeapon(const DataNode &node)
 			ammo = GameData::Outfits().Get(child.Token(1));
 			ammoUsed = (child.Size() >= 3) ? child.Value(2) : 1;			
 		}
-		else if(child.Token(0) == "icon" && child.Size() >= 2)
 		else if(key == "icon")
 			icon = SpriteSet::Get(child.Token(1));
 		else if(key == "fire effect")
@@ -81,7 +80,6 @@ void Weapon::LoadWeapon(const DataNode &node)
 		}
 		else
 		{
-<<<<<<< HEAD
 			double value = child.Value(1);
 			if(key == "lifetime")
 				lifetime = max(0., value);
@@ -153,7 +151,7 @@ void Weapon::LoadWeapon(const DataNode &node)
 				hitForce = value;
 			else if(key == "piercing")
 				piercing = max(0., min(1., value));
-			else if((key  == "optimal range")
+			else if(key  == "optimal range")
 				optimalRange = max(0., value);
 			else
 				child.PrintTrace("Unrecognized weapon attribute: \"" + key + "\":");
