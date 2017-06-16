@@ -121,7 +121,7 @@ public:
 	// Add a captured ship to your fleet.
 	void AddShip(const std::shared_ptr<Ship> &ship);
 	// Give a ship to the player. (such as via mission reward)
-	void GiveShip(const Ship *model, const std::string &name);
+	void GiveShip(const Ship *model, const std::string &name, UI *ui);
 	// Buy or sell a ship.
 	void BuyShip(const Ship *model, const std::string &name);
 	void SellShip(const Ship *selected);

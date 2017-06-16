@@ -329,7 +329,7 @@ void MissionAction::Do(PlayerInfo &player, UI *ui, const System *destination) co
 		player.Accounts().AddCredits(payment);
 	
 	if(shipModel && !shipName.empty())
-		player.GiveShip(shipModel, shipName);
+		player.GiveShip(shipModel, shipName, ui);
 	
 	for(const auto &it : events)
 		player.AddEvent(*GameData::Events().Get(it.first), player.GetDate() + it.second);
