@@ -778,6 +778,20 @@ void PlayerInfo::AddShip(const shared_ptr<Ship> &ship)
 }
 
 
+// Give a ship to the player. (such as via mission reward)
+void PlayerInfo::GiveShip(const Ship *model, const string &name)
+{
+	ships.push_back(shared_ptr<Ship>(new Ship(*model)));
+	ships.back()->SetName(name);
+	ships.back()->SetSystem(system);
+	ships.back()->SetPlanet(planet);
+	ships.back()->SetIsSpecial();
+	ships.back()->SetIsYours();
+	ships.back()->SetGovernment(GameData::PlayerGovernment());
+	
+	depreciation.Buy(*model, day, &stockDepreciation);
+}
+
 
 // Buy a ship of the given model, and give it the given name.
 void PlayerInfo::BuyShip(const Ship *model, const string &name)

@@ -42,6 +42,8 @@ public:
 	void Save(DataWriter &out) const;
 	
 	int Payment() const;
+	std::string GiveShipModel() const;
+	std::string GiveShipName() const;
 	// Tell this object what the default payment for this mission turned out to
 	// be. It will ignore this information if it is not giving default payment.
 	void SetDefaultPayment(int credits);
@@ -66,6 +68,9 @@ private:
 	std::map<std::string, std::map<std::string, std::string>> specialLogText;
 	
 	std::string dialogText;
+	
+	std::string shipModel;
+	std::string shipName;
 	
 	const Conversation *stockConversation = nullptr;
 	Conversation conversation;
