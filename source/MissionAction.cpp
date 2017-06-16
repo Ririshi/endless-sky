@@ -161,11 +161,11 @@ void MissionAction::Load(const DataNode &node, const string &missionName)
 		{
 			shipModel = GameData::Ships().Get(child.Token(1));
 			if(child.Size() == 2)
-				shipName = GameData::Phrases().Get("civilian")->Get();
+				shipPhrase =  "civilian";
 			else if(child.Size() == 3)
 				shipName = child.Token(2);
 			else if(child.Size() >= 4 && (child.Token(2) == "random"))
-				shipName = GameData::Phrases().Get(child.Token(3))->Get();
+				shipPhrase = child.Token(3);
 		}
 		else if(key == "event" && hasValue)
 		{
@@ -362,7 +362,9 @@ MissionAction MissionAction::Instantiate(map<string, string> &subs, int jumps, i
 	result.gifts = gifts;
 	result.payment = payment + (jumps + 1) * payload * paymentMultiplier;
 	result.shipModel = shipModel;
-	result.shipName = shipName;
+	// If there is no specific ship name of a gifted ship, get a random one.
+	result.shipName = shipName.empty() ? GameData::Phrases().Get(shipPhrase)->Get() : shipName;
+	
 	// Fill in the payment amount if this is the "complete" action (which comes
 	// before all the others in the list).
 	if(trigger == "complete" || result.payment)

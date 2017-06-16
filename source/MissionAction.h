@@ -75,6 +75,7 @@ private:
 	std::map<const Outfit *, int> gifts;
 	const Ship *shipModel = nullptr;
 	std::string shipName;
+	std::string shipPhrase;
 	int64_t payment = 0;
 	int64_t paymentMultiplier = 0;
 	
