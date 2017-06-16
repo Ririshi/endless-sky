@@ -15,6 +15,8 @@ PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 
 #include "ConditionSet.h"
 #include "Conversation.h"
+#include "Phrase.h"
+#include "Ship.h"
 
 #include <map>
 #include <set>
@@ -42,8 +44,6 @@ public:
 	void Save(DataWriter &out) const;
 	
 	int Payment() const;
-	std::string GiveShipModel() const;
-	std::string GiveShipName() const;
 	// Tell this object what the default payment for this mission turned out to
 	// be. It will ignore this information if it is not giving default payment.
 	void SetDefaultPayment(int credits);
@@ -69,7 +69,7 @@ private:
 	
 	std::string dialogText;
 	
-	std::string shipModel;
+	const Ship *shipModel;
 	std::string shipName;
 	
 	const Conversation *stockConversation = nullptr;

@@ -781,6 +781,8 @@ void PlayerInfo::AddShip(const shared_ptr<Ship> &ship)
 // Give a ship to the player. (such as via mission reward)
 void PlayerInfo::GiveShip(const Ship *model, const string &name)
 {
+	int day = date.DaysSinceEpoch();
+	
 	ships.push_back(shared_ptr<Ship>(new Ship(*model)));
 	ships.back()->SetName(name);
 	ships.back()->SetSystem(system);

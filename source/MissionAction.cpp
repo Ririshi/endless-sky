@@ -157,22 +157,15 @@ void MissionAction::Load(const DataNode &node, const string &missionName)
 				paymentMultiplier += child.Value(2);
 		}
 		else if(key == "give ship")
-		{
-			if(child.Size() == 1)
-			{
-				shipModel = child.Value(1);
-				shipName = GameData::Phrases().Get("civilian")->Get();
-			}
-			if(child.Size() >= 1)
-				shipModel = child.Value(1);
-			if(child.Size() >= 2)
-			{
-				if((child.Size() >= 3) && (child.Value(2) == "random"))
-					shipName = GameData::Phrases().Get(child.Value(3))->Get();
-				else
-					shipName = child.Value(2);
-			}
-		}
+        {
+            shipModel = GameData::Ships().Get(child.Token(1));
+            if(child.Size() == 2)
+                shipName = GameData::Phrases().Get("civilian")->Get();
+            else if(child.Size() == 3)
+                shipName = child.Value(2);
+            else if(child.Size() >= 4 && (child.Token(2) == "random"))
+                shipName = GameData::Phrases().Get(child.Token(3))->Get();
+        }
 		else if(key == "event" && hasValue)
 		{
 			int days = (child.Size() >= 3 ? child.Value(2) : 0);
@@ -238,7 +231,7 @@ void MissionAction::Save(DataWriter &out) const
 			out.Write("outfit", it.first->Name(), it.second);
 		if(payment)
 			out.Write("payment", payment);
-		if(shipModel && shipName)
+		if(!shipName.empty())
 			out.Write("give ship", shipModel, shipName);
 		for(const auto &it : events)
 			out.Write("event", it.first, it.second);
@@ -255,16 +248,6 @@ void MissionAction::Save(DataWriter &out) const
 int MissionAction::Payment() const
 {
 	return payment;
-}
-
-string MissionAction::GiveShipModel() const
-{
-	return shipModel;
-}
-
-string MissionAction::GiveShipName() const
-{
-	return shipName;
 }
 
 
@@ -344,7 +327,7 @@ void MissionAction::Do(PlayerInfo &player, UI *ui, const System *destination) co
 	if(payment)
 		player.Accounts().AddCredits(payment);
 	
-	if(shipModel && shipName)
+	if(!shipName.empty())
 		player.GiveShip(shipModel, shipName);
 	
 	for(const auto &it : events)
