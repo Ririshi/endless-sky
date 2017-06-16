@@ -163,7 +163,7 @@ void MissionAction::Load(const DataNode &node, const string &missionName)
 			if(child.Size() == 2)
 				shipName = GameData::Phrases().Get("civilian")->Get();
 			else if(child.Size() == 3)
-				shipName = child.Value(2);
+				shipName = child.Token(2);
 			else if(child.Size() >= 4 && (child.Token(2) == "random"))
 				shipName = GameData::Phrases().Get(child.Token(3))->Get();
 		}
