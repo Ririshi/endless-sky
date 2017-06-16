@@ -15,10 +15,6 @@ PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 
 #include "ConditionSet.h"
 #include "Conversation.h"
-<<<<<<< HEAD
-#include "Phrase.h"
-=======
->>>>>>> Fix to get basic feature working
 #include "Ship.h"
 
 #include <map>
