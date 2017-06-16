@@ -783,15 +783,18 @@ void PlayerInfo::GiveShip(const Ship *model, const string &name)
 {
 	int day = date.DaysSinceEpoch();
 	
-	ships.push_back(shared_ptr<Ship>(new Ship(*model)));
-	ships.back()->SetName(name);
-	ships.back()->SetSystem(system);
-	ships.back()->SetPlanet(planet);
-	ships.back()->SetIsSpecial();
-	ships.back()->SetIsYours();
-	ships.back()->SetGovernment(GameData::PlayerGovernment());
+	if(model)
+	{
+		ships.push_back(shared_ptr<Ship>(new Ship(*model)));
+		ships.back()->SetName(name);
+		ships.back()->SetSystem(system);
+		ships.back()->SetPlanet(planet);
+		ships.back()->SetIsSpecial();
+		ships.back()->SetIsYours();
+		ships.back()->SetGovernment(GameData::PlayerGovernment());
 	
-	depreciation.Buy(*model, day, &stockDepreciation);
+		depreciation.Buy(*model, day, &stockDepreciation);		
+	}
 }
 
 

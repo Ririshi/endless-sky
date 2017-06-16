@@ -15,7 +15,10 @@ PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 
 #include "ConditionSet.h"
 #include "Conversation.h"
+<<<<<<< HEAD
 #include "Phrase.h"
+=======
+>>>>>>> Fix to get basic feature working
 #include "Ship.h"
 
 #include <map>
@@ -69,14 +72,13 @@ private:
 	
 	std::string dialogText;
 	
-	const Ship *shipModel;
-	std::string shipName;
-	
 	const Conversation *stockConversation = nullptr;
 	Conversation conversation;
 	
 	std::map<std::string, int> events;
 	std::map<const Outfit *, int> gifts;
+	const Ship *shipModel = nullptr;
+	std::string shipName;
 	int64_t payment = 0;
 	int64_t paymentMultiplier = 0;
 	
