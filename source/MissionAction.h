@@ -73,7 +73,7 @@ private:
 	
 	std::map<std::string, int> events;
 	std::map<const Outfit *, int> gifts;
-	const Ship *shipModel = nullptr;
+	std::vector<const Ship *> ships;
 	std::string shipName;
 	std::string shipPhrase;
 	int64_t payment = 0;

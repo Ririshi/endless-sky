@@ -157,15 +157,18 @@ void MissionAction::Load(const DataNode &node, const string &missionName)
 			if(child.Size() >= 3)
 				paymentMultiplier += child.Value(2);
 		}
-		else if(key == "give ship" && hasValue)
+		else if(key == "ship" && hasValue)
 		{
-			shipModel = GameData::Ships().Get(child.Token(1));
-			if(child.Size() == 2)
-				shipPhrase =  "civilian";
-			else if(child.Size() == 3)
+			int count = child.Value(1) ? child.Value(1) : 1;
+			shipPhrase = "civilian";
+			ships.insert(ships.end(), count, GameData::Ships().Get(child.Token(0)));
+			
+			if(!child.Value(1) && child.Size() >= 3)
 				shipName = child.Token(2);
-			else if(child.Size() >= 4 && (child.Token(2) == "random"))
-				shipPhrase = child.Token(3);
+			for(const DataNode &grand : child)
+				for(int i = 0; i < grand.Size(); ++i)
+					if(grand.Token(0) = "names" && grand.Size() >= 2)
+						shipPhrase = grand.Token(1);
 		}
 		else if(key == "event" && hasValue)
 		{
