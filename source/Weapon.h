@@ -64,6 +64,9 @@ public:
 	// firing all at once (clustering) if the weapon is not an anti-missile and
 	// is not vulnerable to anti-missile, or has the "stream" attribute.
 	bool IsStreamed() const;
+	// Weapons with "no collision" will not collide with anything, and will just
+	// move until they die or split into submunitions.
+	bool NoCollision() const;
 	
 	double Velocity() const;
 	double RandomVelocity() const;
@@ -142,6 +145,7 @@ private:
 	bool isStreamed = false;
 	bool isSafe = false;
 	bool isPhasing = false;
+	bool noCollision = false;
 	
 	// Attributes.
 	int lifetime = 0;
@@ -209,6 +213,7 @@ inline int Weapon::Homing() const { return homing; }
 inline int Weapon::MissileStrength() const { return missileStrength; }
 inline int Weapon::AntiMissile() const { return antiMissile; }
 inline bool Weapon::IsStreamed() const { return isStreamed; }
+inline bool Weapon::NoCollision() const { return noCollision; }
 
 inline double Weapon::Velocity() const { return velocity; }
 inline double Weapon::RandomVelocity() const { return randomVelocity; }

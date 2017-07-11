@@ -1349,6 +1349,9 @@ void Engine::CalculateStep()
 		// If this "projectile" is a ship explosion, it always explodes.
 		if(!gov)
 			closestHit = 0.;
+		// Do not try to collide a weapon set to ignore collusions.
+		else if(projectile.GetWeapon().NoCollision())
+			closestHit = 1.;
 		else if(projectile.GetWeapon().IsPhasing() && projectile.Target())
 		{
 			// "Phasing" projectiles that have a target will never hit any other ship.
