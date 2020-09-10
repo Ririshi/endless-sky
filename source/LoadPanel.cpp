@@ -34,6 +34,8 @@ PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 #include "StarField.h"
 #include "UI.h"
 
+#include "gl_header.h"
+
 #include <algorithm>
 
 using namespace std;
@@ -53,6 +55,34 @@ namespace {
 #endif
 		return string(buf, strftime(buf, BUF_SIZE, FORMAT, date));
 	}
+	
+	// Extract the date from this pilot's most recent save.
+	string FileDate(const string &filename)
+	{
+		string date = "0000-00-00";
+		DataFile file(filename);
+		for(const DataNode &node : file)
+			if(node.Token(0) == "date")
+			{
+				int year = node.Value(3);
+				int month = node.Value(2);
+				int day = node.Value(1);
+				date[0] += (year / 1000) % 10;
+				date[1] += (year / 100) % 10;
+				date[2] += (year / 10) % 10;
+				date[3] += year % 10;
+				date[5] += (month / 10) % 10;
+				date[6] += month % 10;
+				date[8] += (day / 10) % 10;
+				date[9] += day % 10;
+				break;
+			}
+		return std::move(date);
+	}
+	
+	// Only show tooltips if the mouse has hovered in one place for this amount
+	// of time.
+	const int HOVER_TIME = 60;
 }
 
 
@@ -60,11 +90,13 @@ namespace {
 LoadPanel::LoadPanel(PlayerInfo &player, UI &gamePanels)
 	: player(player), gamePanels(gamePanels), selectedPilot(player.Identifier())
 {
-	// If you have a player loaded, and the player is on a planet, makes sure
+	// If you have a player loaded, and the player is on a planet, make sure
 	// the player is saved so that any snapshot you create will be of the
 	// player's current state, rather than one planet ago. Only do this if the
-	// game is paused, i.e. the "main panel" is not on top:
-	if(player.GetPlanet() && !player.IsDead() && !gamePanels.IsTop(&*gamePanels.Root()))
+	// game is paused and 'dirty', i.e. the "main panel" is not on top, and we
+	// actually were using the loaded save.
+	if(player.GetPlanet() && !player.IsDead() && !gamePanels.IsTop(&*gamePanels.Root())
+			&& gamePanels.CanSave())
 		player.Save();
 	UpdateLists();
 }
@@ -75,15 +107,16 @@ void LoadPanel::Draw()
 {
 	glClear(GL_COLOR_BUFFER_BIT);
 	GameData::Background().Draw(Point(), Point());
+	const Font &font = FontSet::Get(14);
 	
 	Information info;
 	if(loadedInfo.IsLoaded())
 	{
-		info.SetString("pilot", loadedInfo.Name());
+		info.SetString("pilot", font.TruncateMiddle(loadedInfo.Name(), 165));
 		if(loadedInfo.ShipSprite())
 		{
 			info.SetSprite("ship sprite", loadedInfo.ShipSprite());
-			info.SetString("ship", loadedInfo.ShipName());
+			info.SetString("ship", font.TruncateMiddle(loadedInfo.ShipName(), 165));
 		}
 		if(!loadedInfo.GetSystem().empty())
 			info.SetString("system", loadedInfo.GetSystem());
@@ -107,8 +140,6 @@ void LoadPanel::Draw()
 	GameData::Interfaces().Get("menu background")->Draw(info, this);
 	GameData::Interfaces().Get("load menu")->Draw(info, this);
 	GameData::Interfaces().Get("menu player info")->Draw(info, this);
-	
-	const Font &font = FontSet::Get(14);
 	
 	// The list has space for 14 entries. Alpha should be 100% for Y = -157 to
 	// 103, and fade to 0 at 10 pixels beyond that.
@@ -143,7 +174,6 @@ void LoadPanel::Draw()
 			bool isHighlighted = (file == selectedFile || isHovering);
 			if(isHovering)
 			{
-				static const int HOVER_TIME = 60;
 				hoverCount = min(HOVER_TIME, hoverCount + 2);
 				if(hoverCount == HOVER_TIME)
 					hoverText = TimestampString(it.second);
@@ -161,21 +191,19 @@ void LoadPanel::Draw()
 	{
 		Point boxSize(font.Width(hoverText) + 20., 30.);
 		
-		FillShader::Fill(hoverPoint + .5 * boxSize, boxSize, Color(.3, 1.));
-		font.Draw(hoverText, hoverPoint + Point(10., 10.), Color(.5, 0.));
+		FillShader::Fill(hoverPoint + .5 * boxSize, boxSize, *GameData::Colors().Get("tooltip background"));
+		font.Draw(hoverText, hoverPoint + Point(10., 10.), *GameData::Colors().Get("medium"));
 	}
 }
 
 
 
-bool LoadPanel::KeyDown(SDL_Keycode key, Uint16 mod, const Command &command)
+bool LoadPanel::KeyDown(SDL_Keycode key, Uint16 mod, const Command &command, bool isNewPress)
 {
 	if(key == 'n')
 	{
-		GameData::Revert();
 		player.New();
 		
-		Messages::Reset();
 		ConversationPanel *panel = new ConversationPanel(
 			player, *GameData::Conversations().Get("intro"));
 		GetUI()->Push(panel);
@@ -184,18 +212,20 @@ bool LoadPanel::KeyDown(SDL_Keycode key, Uint16 mod, const Command &command)
 	else if(key == 'D' && !selectedPilot.empty())
 	{
 		GetUI()->Push(new Dialog(this, &LoadPanel::DeletePilot,
-			"Are you sure you want to delete the selected pilot, \""
-				+ selectedPilot + "\", and all their saved games?"));
+			"Are you sure you want to delete the selected pilot, \"" + selectedPilot
+				+ "\", and all their saved games?\n\n(This will permanently delete the pilot data.)"));
 	}
 	else if(key == 'a' && !player.IsDead() && player.IsLoaded())
 	{
-		string wasSelected = selectedPilot;
 		auto it = files.find(selectedPilot);
 		if(it == files.end() || it->second.empty() || it->second.front().first.size() < 4)
 			return false;
 		
+		nameToConfirm.clear();
+		string lastSave = Files::Saves() + it->second.front().first;
 		GetUI()->Push(new Dialog(this, &LoadPanel::SnapshotCallback,
-			"Enter a name for this snapshot, or leave the name empty to use the current date:"));
+			"Enter a name for this snapshot, or use the most recent save's date:",
+			FileDate(lastSave)));
 	}
 	else if(key == 'R' && !selectedFile.empty())
 	{
@@ -304,8 +334,13 @@ bool LoadPanel::Click(int x, int y, int clicks)
 		if(filesIt == files.end())
 			return true;
 		for(const auto &it : filesIt->second)
-			if(i++ == selected && selectedFile != it.first)
+			if(i++ == selected)
+			{
 				selectedFile = it.first;
+				if(clicks > 1)
+					KeyDown('l', 0, Command(), true);
+				break;
+			}
 	}
 	else
 		return false;
@@ -327,6 +362,11 @@ bool LoadPanel::Hover(int x, int y)
 	
 	hasHover = true;
 	hoverPoint = Point(x, y);
+	// Tooltips should not pop up unless the mouse stays in one place for the
+	// full hover time. Otherwise, every time the user scrubs the mouse over the
+	// list, tooltips will appear after one second.
+	if(hoverCount < HOVER_TIME)
+		hoverCount = 0;
 	
 	return true;
 }
@@ -360,7 +400,7 @@ void LoadPanel::UpdateLists()
 	for(const string &path : fileList)
 	{
 		string fileName = Files::Name(path);
-		// The file name is either "Pilot Name.txt" or "Pilot Name~Date.txt".
+		// The file name is either "Pilot Name.txt" or "Pilot Name~SnapshotTitle.txt".
 		size_t pos = fileName.find('~');
 		if(pos == string::npos)
 			pos = fileName.size() - 4;
@@ -401,11 +441,16 @@ void LoadPanel::OnCallback(int)
 	GetUI()->Pop(this);
 	GetUI()->Pop(GetUI()->Root().get());
 	gamePanels.Reset();
+	gamePanels.CanSave(true);
 	gamePanels.Push(new MainPanel(player));
 	// Tell the main panel to re-draw itself (and pop up the planet panel).
 	gamePanels.StepAll();
-	gamePanels.Push(new ShipyardPanel(player));
-	gamePanels.StepAll();
+	// If the starting conditions don't specify any ships, let the player buy one.
+	if(player.Ships().empty())
+	{
+		gamePanels.Push(new ShipyardPanel(player));
+		gamePanels.StepAll();
+	}
 }
 
 
@@ -413,46 +458,42 @@ void LoadPanel::OnCallback(int)
 // Snapshot name callback.
 void LoadPanel::SnapshotCallback(const string &name)
 {
-	string wasSelected = selectedPilot;
 	auto it = files.find(selectedPilot);
 	if(it == files.end() || it->second.empty() || it->second.front().first.size() < 4)
 		return;
 	
 	string from = Files::Saves() + it->second.front().first;
-	string extension = "~" + name + ".txt";
-	if(name.empty())
-	{
-		// Extract the date from this pilot's most recent save.
-		extension = "~0000-00-00.txt";
-		DataFile file(from);
-		for(const DataNode &node : file)
-			if(node.Token(0) == "date")
-			{
-				int year = node.Value(3);
-				int month = node.Value(2);
-				int day = node.Value(1);
-				extension[1] += (year / 1000) % 10;
-				extension[2] += (year / 100) % 10;
-				extension[3] += (year / 10) % 10;
-				extension[4] += year % 10;
-				extension[6] += (month / 10) % 10;
-				extension[7] += month % 10;
-				extension[9] += (day / 10) % 10;
-				extension[10] += day % 10;
-			}
-	}
+	string suffix = name.empty() ? FileDate(from) : name;
+	string extension = "~" + suffix + ".txt";
 	
-	// Copy the autosave to a new, named file.
+	// If a file with this name already exists, make sure the player
+	// actually wants to overwrite it.
 	string to = from.substr(0, from.size() - 4) + extension;
-	Files::Copy(from, to);
-	if(Files::Exists(to))
+	if(Files::Exists(to) && suffix != nameToConfirm)
+	{
+		nameToConfirm = suffix;
+		GetUI()->Push(new Dialog(this, &LoadPanel::SnapshotCallback, "Warning: \"" + suffix
+			+ "\" is being used for an existing snapshot.\nOverwrite it?", suffix));
+	}
+	else
+		WriteSnapshot(from, to);
+}
+
+
+
+// This name is the one to be used, even if it already exists.
+void LoadPanel::WriteSnapshot(const string &sourceFile, const string &snapshotName)
+{
+	// Copy the autosave to a new, named file.
+	Files::Copy(sourceFile, snapshotName);
+	if(Files::Exists(snapshotName))
 	{
 		UpdateLists();
-		selectedFile = Files::Name(to);
+		selectedFile = Files::Name(snapshotName);
 		loadedInfo.Load(Files::Saves() + selectedFile);
 	}
 	else
-		GetUI()->Push(new Dialog("Error: unable to create the file \"" + to + "\"."));
+		GetUI()->Push(new Dialog("Error: unable to create the file \"" + snapshotName + "\"."));
 }
 
 
@@ -463,12 +504,10 @@ void LoadPanel::LoadCallback()
 	// First, make sure the previous MainPanel has been deleted, so
 	// its background thread is no longer running.
 	gamePanels.Reset();
+	gamePanels.CanSave(true);
 	
-	GameData::Revert();
 	player.Load(loadedInfo.Path());
-	player.ApplyChanges();
 	
-	Messages::Reset();
 	GetUI()->Pop(this);
 	GetUI()->Pop(GetUI()->Root().get());
 	gamePanels.Push(new MainPanel(player));

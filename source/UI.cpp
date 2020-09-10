@@ -24,14 +24,6 @@ using namespace std;
 
 
 
-// Default constructor.
-UI::UI()
-	: isDone(false)
-{
-}
-
-
-
 // Handle an event. The event is handed to each panel on the stack until one
 // of them handles it. If none do, this returns false.
 bool UI::Handle(const SDL_Event &event)
@@ -81,7 +73,7 @@ bool UI::Handle(const SDL_Event &event)
 		else if(event.type == SDL_KEYDOWN)
 		{
 			Command command(event.key.keysym.sym);
-			handled = (*it)->KeyDown(event.key.keysym.sym, event.key.keysym.mod, command);
+			handled = (*it)->KeyDown(event.key.keysym.sym, event.key.keysym.mod, command, !event.key.repeat);
 		}
 		
 		// If this panel does not want anything below it to receive events, do
@@ -157,7 +149,9 @@ void UI::Pop(const Panel *panel)
 
 
 
-// Check whether the given panel is on top, i.e. is the active one.
+// Check whether the given panel is on top of the existing panels, i.e. is the
+// active one, on this Step. Any panels that have been pushed this Step are not
+// considered.
 bool UI::IsTop(const Panel *panel) const
 {
 	return (!stack.empty() && stack.back().get() == panel);
@@ -165,7 +159,8 @@ bool UI::IsTop(const Panel *panel) const
 
 
 
-// Get the top panel.
+// Get the absolute top panel, even if it is not yet drawn (i.e. was pushed on
+// this Step).
 shared_ptr<Panel> UI::Top() const
 {
 	if(!toPush.empty())
@@ -206,6 +201,21 @@ shared_ptr<Panel> UI::Root() const
 
 
 
+// If the player enters the game, enable saving the loaded file.
+void UI::CanSave(bool canSave)
+{
+	this->canSave = canSave;
+}
+
+
+
+bool UI::CanSave() const
+{
+	return canSave;
+}
+
+
+
 // Tell the UI to quit.
 void UI::Quit()
 {
@@ -222,7 +232,10 @@ bool UI::IsDone() const
 
 
 
-// Check if it is time to quit.
+// Check if there are no panels left. No panels left on the gamePanels-
+// stack usually means that it is time for the game to quit, while no
+// panels left on the menuPanels-stack is a normal state for a running
+// game.
 bool UI::IsEmpty() const
 {
 	return stack.empty() && toPush.empty();

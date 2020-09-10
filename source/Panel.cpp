@@ -17,6 +17,7 @@ PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 #include "Dialog.h"
 #include "FillShader.h"
 #include "GameData.h"
+#include "Point.h"
 #include "Preferences.h"
 #include "Screen.h"
 #include "UI.h"
@@ -92,7 +93,7 @@ void Panel::AddZone(const Rectangle &rect, const function<void()> &fun)
 
 void Panel::AddZone(const Rectangle &rect, SDL_Keycode key)
 {
-	AddZone(rect, [this, key](){ this->KeyDown(key, 0, Command()); });
+	AddZone(rect, [this, key](){ this->KeyDown(key, 0, Command(), true); });
 }
 
 
@@ -116,8 +117,17 @@ bool Panel::ZoneClick(const Point &point)
 
 
 
+// Panels will by default not allow fast-forward. The ones that do allow
+// it will override this (virtual) function and return true.
+bool Panel::AllowFastForward() const
+{
+	return false;
+}
+
+
+
 // Only override the ones you need; the default action is to return false.
-bool Panel::KeyDown(SDL_Keycode key, Uint16 mod, const Command &command)
+bool Panel::KeyDown(SDL_Keycode key, Uint16 mod, const Command &command, bool isNewPress)
 {
 	return false;
 }
@@ -194,7 +204,7 @@ void Panel::DrawBackdrop() const
 		return;
 	
 	// Darken everything but the dialog.
-	Color back(0., .7);
+	const Color &back = *GameData::Colors().Get("dialog backdrop");
 	FillShader::Fill(Point(), Point(Screen::Width(), Screen::Height()), back);
 }
 
@@ -213,7 +223,7 @@ UI *Panel::GetUI() const
 // user-defined command key will override it.
 bool Panel::DoKey(SDL_Keycode key, Uint16 mod)
 {
-	return KeyDown(key, mod, Command());
+	return KeyDown(key, mod, Command(), true);
 }
 
 

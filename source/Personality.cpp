@@ -1,4 +1,4 @@
-/* Personality.h
+/* Personality.cpp
 Copyright (c) 2014 by Michael Zahniser
 
 Endless Sky is free software: you can redistribute it and/or modify it under the
@@ -21,33 +21,36 @@ PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 using namespace std;
 
 namespace {
-	static const int PACIFIST = (1 << 0);
-	static const int FORBEARING = (1 << 1);
-	static const int TIMID = (1 << 2);
-	static const int DISABLES = (1 << 3);
-	static const int PLUNDERS = (1 << 4);
-	static const int HEROIC = (1 << 5);
-	static const int STAYING = (1 << 6);
-	static const int ENTERING = (1 << 7);
-	static const int NEMESIS = (1 << 8);
-	static const int SURVEILLANCE = (1 << 9);
-	static const int UNINTERESTED = (1 << 10);
-	static const int WAITING = (1 << 11);
-	static const int DERELICT = (1 << 12);
-	static const int FLEEING = (1 << 13);
-	static const int ESCORT = (1 << 14);
-	static const int FRUGAL = (1 << 15);
-	static const int COWARD = (1 << 16);
-	static const int VINDICTIVE = (1 << 17);
-	static const int SWARMING = (1 << 18);
-	static const int UNCONSTRAINED = (1 << 19);
-	static const int MINING = (1 << 20);
-	static const int HARVESTS = (1 << 21);
-	static const int APPEASING = (1 << 22);
-	static const int MUTE = (1 << 23);
-	static const int OPPORTUNISTIC = (1 << 24);
+	const int PACIFIST = (1 << 0);
+	const int FORBEARING = (1 << 1);
+	const int TIMID = (1 << 2);
+	const int DISABLES = (1 << 3);
+	const int PLUNDERS = (1 << 4);
+	const int HEROIC = (1 << 5);
+	const int STAYING = (1 << 6);
+	const int ENTERING = (1 << 7);
+	const int NEMESIS = (1 << 8);
+	const int SURVEILLANCE = (1 << 9);
+	const int UNINTERESTED = (1 << 10);
+	const int WAITING = (1 << 11);
+	const int DERELICT = (1 << 12);
+	const int FLEEING = (1 << 13);
+	const int ESCORT = (1 << 14);
+	const int FRUGAL = (1 << 15);
+	const int COWARD = (1 << 16);
+	const int VINDICTIVE = (1 << 17);
+	const int SWARMING = (1 << 18);
+	const int UNCONSTRAINED = (1 << 19);
+	const int MINING = (1 << 20);
+	const int HARVESTS = (1 << 21);
+	const int APPEASING = (1 << 22);
+	const int MUTE = (1 << 23);
+	const int OPPORTUNISTIC = (1 << 24);
+	const int TARGET = (1 << 25);
+	const int MARKED = (1 << 26);
+	const int LAUNCHING = (1 << 27);
 	
-	static const map<string, int> TOKEN = {
+	const map<string, int> TOKEN = {
 		{"pacifist", PACIFIST},
 		{"forbearing", FORBEARING},
 		{"timid", TIMID},
@@ -72,10 +75,13 @@ namespace {
 		{"harvests", HARVESTS},
 		{"appeasing", APPEASING},
 		{"mute", MUTE},
-		{"opportunistic", OPPORTUNISTIC}
+		{"opportunistic", OPPORTUNISTIC},
+		{"target", TARGET},
+		{"marked", MARKED},
+		{"launching", LAUNCHING}
 	};
 	
-	double DEFAULT_CONFUSION = 10.;
+	const double DEFAULT_CONFUSION = 10.;
 }
 
 
@@ -90,18 +96,28 @@ Personality::Personality()
 
 void Personality::Load(const DataNode &node)
 {
-	flags = 0;
-	for(int i = 1; i < node.Size(); ++i)
-		Parse(node.Token(i));
+	bool add = (node.Token(0) == "add");
+	bool remove = (node.Token(0) == "remove");
+	if(!(add || remove))
+		flags = 0;
+	for(int i = 1 + (add || remove); i < node.Size(); ++i)
+		Parse(node, i, remove);
 	
 	for(const DataNode &child : node)
 	{
-		if(child.Token(0) == "confusion" && child.Size() >= 2)
-			confusionMultiplier = child.Value(1);
+		if(child.Token(0) == "confusion")
+		{
+			if(add || remove)
+				child.PrintTrace("Cannot \"" + node.Token(0) + "\" a confusion value:");
+			else if(child.Size() < 2)
+				child.PrintTrace("Skipping \"confusion\" tag with no value specified:");
+			else
+				confusionMultiplier = child.Value(1);
+		}
 		else
 		{
 			for(int i = 0; i < child.Size(); ++i)
-				Parse(child.Token(i));
+				Parse(child, i, remove);
 		}
 	}
 }
@@ -235,6 +251,13 @@ bool Personality::IsWaiting() const
 
 
 
+bool Personality::IsLaunching() const
+{
+	return flags & LAUNCHING;
+}
+
+
+
 bool Personality::IsFleeing() const
 {
 	return flags & FLEEING;
@@ -291,6 +314,20 @@ bool Personality::IsEscort() const
 
 
 
+bool Personality::IsTarget() const
+{
+	return flags & TARGET;
+}
+
+
+
+bool Personality::IsMarked() const
+{
+	return flags & MARKED;
+}
+
+
+
 bool Personality::IsMute() const
 {
 	return flags & MUTE;
@@ -327,15 +364,24 @@ void Personality::UpdateConfusion(bool isFiring)
 Personality Personality::Defender()
 {
 	Personality defender;
-	defender.flags = STAYING | NEMESIS | HEROIC;
+	defender.flags = STAYING | MARKED | HEROIC | UNCONSTRAINED | TARGET;
 	return defender;
 }
 
 
 
-void Personality::Parse(const string &token)
+void Personality::Parse(const DataNode &node, int index, bool remove)
 {
+	const string &token = node.Token(index);
+	
 	auto it = TOKEN.find(token);
 	if(it != TOKEN.end())
-		flags |= it->second;
+	{
+		if(remove)
+			flags &= ~it->second;
+		else
+			flags |= it->second;
+	}
+	else
+		node.PrintTrace("Invalid personality setting: \"" + token + "\"");
 }

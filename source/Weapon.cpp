@@ -19,6 +19,8 @@ PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 #include "Outfit.h"
 #include "SpriteSet.h"
 
+#include <algorithm>
+
 using namespace std;
 
 
@@ -28,6 +30,8 @@ void Weapon::LoadWeapon(const DataNode &node)
 {
 	isWeapon = true;
 	bool isClustered = false;
+	calculatedDamage = false;
+	doesDamage = false;
 	
 	for(const DataNode &child : node)
 	{
@@ -36,6 +40,12 @@ void Weapon::LoadWeapon(const DataNode &node)
 			isStreamed = true;
 		else if(key == "cluster")
 			isClustered = true;
+		else if(key == "safe")
+			isSafe = true;
+		else if(key == "phasing")
+			isPhasing = true;
+		else if(key == "no damage scaling")
+			isDamageScaled = false;
 		else if(child.Size() < 2)
 			child.PrintTrace("Skipping weapon attribute with no value specified:");
 		else if(key == "sprite")
@@ -45,7 +55,10 @@ void Weapon::LoadWeapon(const DataNode &node)
 		else if(key == "sound")
 			sound = Audio::Get(child.Token(1));
 		else if(key == "ammo")
-			ammo = GameData::Outfits().Get(child.Token(1));
+		{
+			int usage = (child.Size() >= 3) ? child.Value(2) : 1;
+			ammo = make_pair(GameData::Outfits().Get(child.Token(1)), max(0, usage));
+		}
 		else if(key == "icon")
 			icon = SpriteSet::Get(child.Token(1));
 		else if(key == "fire effect")
@@ -101,7 +114,18 @@ void Weapon::LoadWeapon(const DataNode &node)
 			else if(key == "drag")
 				drag = value;
 			else if(key == "hardpoint offset")
-				hardpointOffset = value;
+			{
+				// A single value specifies the y-offset, while two values
+				// specifies an x & y offset, e.g. for an asymmetric hardpoint.
+				// The point is specified in traditional XY orientation, but must
+				// be inverted along the y-dimension for internal use.
+				if(child.Size() == 2)
+					hardpointOffset = Point(0., -value);
+				else if(child.Size() == 3)
+					hardpointOffset = Point(value, -child.Value(2));
+				else
+					child.PrintTrace("Unsupported \"" + key + "\" specification:");
+			}
 			else if(key == "turn")
 				turn = value;
 			else if(key == "inaccuracy")
@@ -125,15 +149,17 @@ void Weapon::LoadWeapon(const DataNode &node)
 			else if(key == "firing heat")
 				firingHeat = value;
 			else if(key == "split range")
-				splitRange = value;
+				splitRange = max(0., value);
 			else if(key == "trigger radius")
-				triggerRadius = value;
+				triggerRadius = max(0., value);
 			else if(key == "blast radius")
-				blastRadius = value;
+				blastRadius = max(0., value);
 			else if(key == "shield damage")
 				damage[SHIELD_DAMAGE] = value;
 			else if(key == "hull damage")
 				damage[HULL_DAMAGE] = value;
+			else if(key == "fuel damage")
+				damage[FUEL_DAMAGE] = value;
 			else if(key == "heat damage")
 				damage[HEAT_DAMAGE] = value;
 			else if(key == "ion damage")
@@ -143,9 +169,13 @@ void Weapon::LoadWeapon(const DataNode &node)
 			else if(key == "slowing damage")
 				damage[SLOWING_DAMAGE] = value;
 			else if(key == "hit force")
-				hitForce = value;
+				damage[HIT_FORCE] = value;
 			else if(key == "piercing")
-				piercing = max(0., min(1., value));
+				piercing = max(0., value);
+			else if(key == "range override")
+				rangeOverride = max(0., value);
+			else if(key == "velocity override")
+				velocityOverride = max(0., value);
 			else
 				child.PrintTrace("Unrecognized weapon attribute: \"" + key + "\":");
 		}
@@ -162,7 +192,10 @@ void Weapon::LoadWeapon(const DataNode &node)
 	
 	// Support legacy missiles with no tracking type defined:
 	if(homing && !tracking && !opticalTracking && !infraredTracking && !radarTracking)
+	{
 		tracking = 1.;
+		node.PrintTrace("Warning: Deprecated use of \"homing\" without use of \"[optical|infrared|radar] tracking.\"");
+	}
 	
 	// Convert the "live effect" counts from occurrences per projectile lifetime
 	// into chance of occurring per frame.
@@ -213,7 +246,14 @@ const Sound *Weapon::WeaponSound() const
 
 const Outfit *Weapon::Ammo() const
 {
-	return ammo;
+	return ammo.first;
+}
+
+
+
+int Weapon::AmmoUsage() const
+{
+	return ammo.second;
 }
 
 
@@ -263,6 +303,8 @@ const map<const Outfit *, int> &Weapon::Submunitions() const
 
 double Weapon::TotalLifetime() const
 {
+	if(rangeOverride)
+		return rangeOverride / WeightedVelocity();
 	if(totalLifetime < 0.)
 	{
 		totalLifetime = 0.;
@@ -277,7 +319,7 @@ double Weapon::TotalLifetime() const
 
 double Weapon::Range() const
 {
-	return Velocity() * TotalLifetime();
+	return (rangeOverride > 0) ? rangeOverride : WeightedVelocity() * TotalLifetime();
 }
 
 
@@ -293,11 +335,15 @@ void Weapon::SetTurretTurn(double rate)
 
 double Weapon::TotalDamage(int index) const
 {
-	if(!calculatedDamage[index])
+	if(!calculatedDamage)
 	{
-		calculatedDamage[index] = true;
-		for(const auto &it : submunitions)
-			damage[index] += it.first->TotalDamage(index) * it.second;
+		calculatedDamage = true;
+		for(int i = 0; i < DAMAGE_TYPES; ++i)
+		{
+			for(const auto &it : submunitions)
+				damage[i] += it.first->TotalDamage(i) * it.second;
+			doesDamage |= (damage[i] > 0.);
+		}
 	}
 	return damage[index];
 }

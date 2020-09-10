@@ -26,8 +26,9 @@ PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 #include "Ship.h"
 #include "SpriteSet.h"
 #include "SpriteShader.h"
-#include "System.h"
 #include "UI.h"
+
+class System;
 
 using namespace std;
 
@@ -167,7 +168,7 @@ bool ShipyardPanel::CanBuy() const
 
 
 
-void ShipyardPanel::Buy()
+void ShipyardPanel::Buy(bool fromCargo)
 {
 	int64_t licenseCost = LicenseCost(&selectedShip->Attributes());
 	if(licenseCost < 0)
@@ -176,7 +177,7 @@ void ShipyardPanel::Buy()
 	modifier = Modifier();
 	string message;
 	if(licenseCost)
-		message = "Note: you will need to pay " + Format::Number(licenseCost)
+		message = "Note: you will need to pay " + Format::Credits(licenseCost)
 			+ " credits for the licenses required to operate this ship, in addition to its cost."
 			" If that is okay with you, go ahead and enter a name for your brand new ";
 	else
@@ -228,20 +229,22 @@ void ShipyardPanel::FailBuy() const
 
 
 
-bool ShipyardPanel::CanSell() const
+bool ShipyardPanel::CanSell(bool toCargo) const
 {
 	return playerShip;
 }
 
 
 
-void ShipyardPanel::Sell()
+void ShipyardPanel::Sell(bool toCargo)
 {
 	static const int MAX_LIST = 20;
+	static const int MAX_NAME_WIDTH = 250 - 30;
 	
 	int count = playerShips.size();
 	int initialCount = count;
-	string message = "Sell ";
+	string message = "Sell the ";
+	const Font &font = FontSet::Get(14);
 	if(count == 1)
 		message += playerShip->Name();
 	else if(count <= MAX_LIST)
@@ -255,7 +258,7 @@ void ShipyardPanel::Sell()
 		else
 		{
 			while(count-- > 1)
-				message += ",\n" + (*it++)->Name();
+				message += ",\n" + font.TruncateMiddle((*it++)->Name(), MAX_NAME_WIDTH);
 			message += ",\nand ";
 		}
 		message += (*it)->Name();
@@ -263,10 +266,11 @@ void ShipyardPanel::Sell()
 	else
 	{
 		auto it = playerShips.begin();
-		for(int i = 0; i < MAX_LIST - 1; ++i)
-			message += (*it++)->Name() + ",\n";
+		message += (*it++)->Name() + ",\n";
+		for(int i = 1; i < MAX_LIST - 1; ++i)
+			message += font.TruncateMiddle((*it++)->Name(), MAX_NAME_WIDTH) + ",\n";
 		
-		message += "and " + Format::Number(count - (MAX_LIST - 1)) + " other ships";
+		message += "and " + to_string(count - (MAX_LIST - 1)) + " other ships";
 	}
 	// To allow calculating the sale price of all the ships in the list,
 	// temporarily copy into a shared_ptr vector:
@@ -275,16 +279,8 @@ void ShipyardPanel::Sell()
 		toSell.push_back(it->shared_from_this());
 	int64_t total = player.FleetDepreciation().Value(toSell, day);
 	
-	message += ((initialCount > 2) ? "\nfor " : " for ") + Format::Number(total) + " credits?";
+	message += ((initialCount > 2) ? "\nfor " : " for ") + Format::Credits(total) + " credits?";
 	GetUI()->Push(new Dialog(this, &ShipyardPanel::SellShip, message));
-}
-
-
-
-bool ShipyardPanel::FlightCheck()
-{
-	// The shipyard does not perform any flight checks.
-	return true;
 }
 
 
@@ -333,7 +329,7 @@ void ShipyardPanel::SellShip()
 		player.SellShip(ship);
 	playerShips.clear();
 	playerShip = nullptr;
-	for(shared_ptr<Ship> ship : player.Ships())
+	for(const shared_ptr<Ship> &ship : player.Ships())
 		if(ship->GetSystem() == player.GetSystem() && !ship->IsDisabled())
 		{
 			playerShip = ship.get();

@@ -13,14 +13,16 @@ PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 #ifndef OUTFIT_H_
 #define OUTFIT_H_
 
-#include "Body.h"
 #include "Weapon.h"
+
+#include "Dictionary.h"
 
 #include <map>
 #include <string>
 #include <utility>
 #include <vector>
 
+class Body;
 class DataNode;
 class Effect;
 class Sound;
@@ -49,14 +51,16 @@ public:
 	const std::string &Category() const;
 	const std::string &Description() const;
 	int64_t Cost() const;
+	double Mass() const;
 	// Get the licenses needed to buy or operate this ship.
 	const std::vector<std::string> &Licenses() const;
 	// Get the image to display in the outfitter when buying this item.
 	const Sprite *Thumbnail() const;
 	
+	double Get(const char *attribute) const;
 	double Get(const std::string &attribute) const;
-	const std::map<std::string, double> &Attributes() const;
-	const std::map<std::string, double> &Tags() const;
+	const Dictionary &Attributes() const;
+	const Dictionary &Tags() const;
 	
 	// Determine whether the given number of instances of the given outfit can
 	// be added to a ship with the attributes represented by this instance. If
@@ -65,18 +69,30 @@ public:
 	// For tracking a combination of outfits in a ship: add the given number of
 	// instances of the given outfit to this outfit.
 	void Add(const Outfit &other, int count = 1);
-	// Modify this outfit's attributes.
-	void Add(const std::string &attribute, double value = 1.);
-	void Reset(const std::string &attribute, double value = 0.);
-	// Copy tags from another outfit: used to set the base tags of one
-	// ship to its base class values.
-	void CopyTags (const Outfit &base);
+	// Modify this outfit's attributes. Note that this cannot be used to change
+	// special attributes, like cost and mass.
+	void Set(const char *attribute, double value);
+    // Copy tags from another outfit: used to set the base tags of one
+    // ship to its base class values.
+    void CopyTags (const Outfit &base);
 	
 	// Get this outfit's engine flare sprites, if any.
 	const std::vector<std::pair<Body, int>> &FlareSprites() const;
+	const std::vector<std::pair<Body, int>> &ReverseFlareSprites() const;
+	const std::vector<std::pair<Body, int>> &SteeringFlareSprites() const;
 	const std::map<const Sound *, int> &FlareSounds() const;
+	const std::map<const Sound *, int> &ReverseFlareSounds() const;
+	const std::map<const Sound *, int> &SteeringFlareSounds() const;
 	// Get the afterburner effect, if any.
 	const std::map<const Effect *, int> &AfterburnerEffects() const;
+	// Get this oufit's jump effects and sounds, if any.
+	const std::map<const Effect *, int> &JumpEffects() const;
+	const std::map<const Sound *, int> &HyperSounds() const;
+	const std::map<const Sound *, int> &HyperInSounds() const;
+	const std::map<const Sound *, int> &HyperOutSounds() const;
+	const std::map<const Sound *, int> &JumpSounds() const;
+	const std::map<const Sound *, int> &JumpInSounds() const;
+	const std::map<const Sound *, int> &JumpOutSounds() const;
 	// Get the sprite this outfit uses when dumped into space.
 	const Sprite *FlotsamSprite() const;
 	
@@ -88,22 +104,37 @@ private:
 	std::string description;
 	const Sprite *thumbnail = nullptr;
 	int64_t cost = 0;
+	double mass = 0.;
 	// Licenses needed to purchase this item.
 	std::vector<std::string> licenses;
 	
-	std::map<std::string, double> attributes;
-	std::map<std::string, double> tags;
+	Dictionary attributes;
+	Dictionary tags;
 	
+	// The integers in these pairs/maps indicate the number of
+	// sprites/effects/sounds to be placed/played.
 	std::vector<std::pair<Body, int>> flareSprites;
+	std::vector<std::pair<Body, int>> reverseFlareSprites;
+	std::vector<std::pair<Body, int>> steeringFlareSprites;
 	std::map<const Sound *, int> flareSounds;
+	std::map<const Sound *, int> reverseFlareSounds;
+	std::map<const Sound *, int> steeringFlareSounds;
 	std::map<const Effect *, int> afterburnerEffects;
+	std::map<const Effect *, int> jumpEffects;
+	std::map<const Sound *, int> hyperSounds;
+	std::map<const Sound *, int> hyperInSounds;
+	std::map<const Sound *, int> hyperOutSounds;
+	std::map<const Sound *, int> jumpSounds;
+	std::map<const Sound *, int> jumpInSounds;
+	std::map<const Sound *, int> jumpOutSounds;
 	const Sprite *flotsamSprite = nullptr;
 };
 
 
 
-// This gets called a lot, so inline it for speed.
+// These get called a lot, so inline them for speed.
 inline int64_t Outfit::Cost() const { return cost; }
+inline double Outfit::Mass() const { return mass; }
 
 
 

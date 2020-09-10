@@ -29,20 +29,20 @@ using namespace std;
 
 namespace {
 	// Dimensions of the table.
-	static const int MIN_X = -310;
-	static const int MAX_X = 190;
+	const int MIN_X = -310;
+	const int MAX_X = 190;
 	
 	// Column headings.
-	static const string HEADING[6] = {"Type", "Principal", "Interest", "Term", "Payment", ""};
+	const string HEADING[6] = {"Type", "Principal", "Interest", "Term", "Payment", ""};
 	// X coordinates of the columns of the table.
-	static const int COLUMN[5] = {-290, -180, -100, -30, 20};
-	static const int EXTRA_X = 100;
+	const int COLUMN[5] = {-290, -180, -100, -30, 20};
+	const int EXTRA_X = 100;
 	
 	// Position of the first line of the table.
-	static const int FIRST_Y = 78;
+	const int FIRST_Y = 78;
 	
 	// Maximum number of rows of mortages, etc. to draw.
-	static const int MAX_ROWS = 8;
+	const int MAX_ROWS = 8;
 }
 
 
@@ -79,9 +79,9 @@ void BankPanel::Draw()
 	table.DrawAt(Point(0., FIRST_Y));
 	
 	// Use stock colors from the game data.
-	Color back = *GameData::Colors().Get("faint");
-	Color unselected = *GameData::Colors().Get("medium");
-	Color selected = *GameData::Colors().Get("bright");
+	const Color &back = *GameData::Colors().Get("faint");
+	const Color &unselected = *GameData::Colors().Get("medium");
+	const Color &selected = *GameData::Colors().Get("bright");
 	
 	// Draw the heading of the table.
 	table.DrawUnderline(unselected);
@@ -103,6 +103,7 @@ void BankPanel::Draw()
 	
 	// Check if salaries need to be drawn.
 	int64_t salaries = player.Salaries();
+	int64_t salariesOwed = player.Accounts().SalariesOwed();
 	int64_t income[2] = {0, 0};
 	static const string prefix[2] = {"salary: ", "tribute: "};
 	for(int i = 0; i < 2; ++i)
@@ -111,9 +112,12 @@ void BankPanel::Draw()
 		for( ; it != player.Conditions().end() && !it->first.compare(0, prefix[i].length(), prefix[i]); ++it)
 			income[i] += it->second;
 	}
+	// Check if maintenance needs to be drawn.
+	int64_t maintenance = player.Maintenance();
+	int64_t maintenanceDue = player.Accounts().MaintenanceDue();
 	// Figure out how many rows of the display are for mortgages, and also check
 	// whether multiple mortgages have to be combined into the last row.
-	mortgageRows = MAX_ROWS - (salaries != 0) - (income[0] != 0 || income[1] != 0);
+	mortgageRows = MAX_ROWS - (salaries != 0 || salariesOwed != 0) - (maintenance != 0 || maintenanceDue != 0) - (income[0] != 0 || income[1] != 0);
 	int mortgageCount = player.Accounts().Mortgages().size();
 	mergedMortgages = (mortgageCount > mortgageRows);
 	if(!mergedMortgages)
@@ -166,22 +170,39 @@ void BankPanel::Draw()
 	}
 	table.SetColor(unselected);
 	// Draw the salaries, if necessary.
-	if(salaries)
+	if(salaries || salariesOwed)
 	{
 		// Include salaries in the total daily payment.
 		totalPayment += salaries;
 		
 		table.Draw("Crew Salaries");
 		// Check whether the player owes back salaries.
-		if(player.Accounts().SalariesOwed())
+		if(salariesOwed)
 		{
-			table.Draw(Format::Number(player.Accounts().SalariesOwed()));
+			table.Draw(Format::Credits(salariesOwed));
 			table.Draw("(overdue)");
 			table.Advance(1);
 		}
 		else
 			table.Advance(3);
 		table.Draw(salaries);
+		table.Advance();
+	}
+	// Draw the maintenance costs, if necessary.
+	if(maintenance || maintenanceDue)
+	{
+		totalPayment += maintenance;
+		
+		table.Draw("Maintenance");
+		if(maintenanceDue)
+		{
+			table.Draw(Format::Credits(maintenanceDue));
+			table.Draw("(overdue)");
+			table.Advance(1);
+		}
+		else
+			table.Advance(3);
+		table.Draw(maintenance);
 		table.Advance();
 	}
 	if(income[0] || income[1])
@@ -214,7 +235,7 @@ void BankPanel::Draw()
 	if(!qualify)
 		amount = "You do not qualify for further loans at this time.";
 	else
-		amount = "You qualify for a new loan of up to " + Format::Number(qualify) + " credits.";
+		amount = "You qualify for a new loan of up to " + Format::Credits(qualify) + " credits.";
 	if(qualify && selectedRow >= mortgageRows)
 		table.DrawHighlight(back);
 	table.Draw(amount, unselected);
@@ -227,16 +248,19 @@ void BankPanel::Draw()
 	// Draw the "Pay All" button.
 	const Interface *interface = GameData::Interfaces().Get("bank");
 	Information info;
-	for(const Mortgage &mortgage : player.Accounts().Mortgages())
-		if(mortgage.Principal() <= player.Accounts().Credits())
-			info.SetCondition("can pay");
+	if((salariesOwed || maintenanceDue) && player.Accounts().Credits() > 0)
+		info.SetCondition("can pay");
+	else
+		for(const Mortgage &mortgage : player.Accounts().Mortgages())
+			if(mortgage.Principal() <= player.Accounts().Credits())
+				info.SetCondition("can pay");
 	interface->Draw(info, this);
 }
 
 
 
 // Handle key presses, or clicks that the interface has mapped to a key press.
-bool BankPanel::KeyDown(SDL_Keycode key, Uint16 mod, const Command &command)
+bool BankPanel::KeyDown(SDL_Keycode key, Uint16 mod, const Command &command, bool isNewPress)
 {
 	if(key == SDLK_UP && selectedRow)
 		--selectedRow;
@@ -262,6 +286,7 @@ bool BankPanel::KeyDown(SDL_Keycode key, Uint16 mod, const Command &command)
 				++i;
 		}
 		player.Accounts().PaySalaries(player.Accounts().SalariesOwed());
+		player.Accounts().PayMaintenance(player.Accounts().MaintenanceDue());
 		qualify = player.Accounts().Prequalify();
 	}
 	else

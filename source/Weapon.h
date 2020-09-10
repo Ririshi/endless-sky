@@ -14,8 +14,10 @@ PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 #define WEAPON_H_
 
 #include "Body.h"
+#include "Point.h"
 
 #include <map>
+#include <utility>
 
 class DataNode;
 class Effect;
@@ -58,6 +60,8 @@ public:
 	int BurstCount() const;
 	int Homing() const;
 	
+	int AmmoUsage() const;
+	
 	int MissileStrength() const;
 	int AntiMissile() const;
 	// Weapons of the same type will alternate firing (streaming) rather than
@@ -67,9 +71,10 @@ public:
 	
 	double Velocity() const;
 	double RandomVelocity() const;
+	double WeightedVelocity() const;
 	double Acceleration() const;
 	double Drag() const;
-	double HardpointOffset() const;
+	const Point &HardpointOffset() const;
 	
 	double Turn() const;
 	double Inaccuracy() const;
@@ -90,13 +95,26 @@ public:
 	double BlastRadius() const;
 	double HitForce() const;
 	
+	// A "safe" weapon hits only hostile ships (even if it has a blast radius).
+	// A "phasing" weapon hits only its intended target; it passes through
+	// everything else, including asteroids.
+	bool IsSafe() const;
+	bool IsPhasing() const;
+	// Blast radius weapons will scale damage and hit force based on distance,
+	// unless the "no damage scaling" keyphrase is used in the weapon definition.
+	bool IsDamageScaled() const;
+	
 	// These values include all submunitions:
 	double ShieldDamage() const;
 	double HullDamage() const;
+	double FuelDamage() const;
 	double HeatDamage() const;
 	double IonDamage() const;
 	double DisruptionDamage() const;
 	double SlowingDamage() const;
+	// Check if this weapon does damage. If not, attacking a ship with this
+	// weapon is not a provocation (even if you push or pull it).
+	bool DoesDamage() const;
 	
 	double Piercing() const;
 	
@@ -109,7 +127,9 @@ protected:
 	// default turnrate.
 	void SetTurretTurn(double rate);
 	
-	const Outfit *ammo = nullptr;
+	// A pair representing the outfit that is consumed as ammo and the number
+	// of that outfit consumed upon fire.
+	std::pair<const Outfit*, int> ammo;
 	
 	
 private:
@@ -133,6 +153,9 @@ private:
 	// This stores whether or not the weapon has been loaded.
 	bool isWeapon = false;
 	bool isStreamed = false;
+	bool isSafe = false;
+	bool isPhasing = false;
+	bool isDamageScaled = true;
 	
 	// Attributes.
 	int lifetime = 0;
@@ -149,7 +172,7 @@ private:
 	double randomVelocity = 0.;
 	double acceleration = 0.;
 	double drag = 0.;
-	double hardpointOffset = 0.;
+	Point hardpointOffset = {0., 0.};
 	
 	double turn = 0.;
 	double inaccuracy = 0.;
@@ -168,20 +191,26 @@ private:
 	double splitRange = 0.;
 	double triggerRadius = 0.;
 	double blastRadius = 0.;
-	double hitForce = 0.;
 	
+	static const int DAMAGE_TYPES = 8;
 	static const int SHIELD_DAMAGE = 0;
 	static const int HULL_DAMAGE = 1;
-	static const int HEAT_DAMAGE = 2;
-	static const int ION_DAMAGE = 3;
-	static const int DISRUPTION_DAMAGE = 4;
-	static const int SLOWING_DAMAGE = 5;
-	mutable double damage[6] = {0., 0., 0., 0., 0., 0.};
+	static const int FUEL_DAMAGE = 2;
+	static const int HEAT_DAMAGE = 3;
+	static const int ION_DAMAGE = 4;
+	static const int DISRUPTION_DAMAGE = 5;
+	static const int SLOWING_DAMAGE = 6;
+	static const int HIT_FORCE = 7;
+	mutable double damage[DAMAGE_TYPES] = {0., 0., 0., 0., 0., 0., 0., 0.};
 	
 	double piercing = 0.;
 	
+	double rangeOverride = 0.;
+	double velocityOverride = 0.;
+	
 	// Cache the calculation of these values, for faster access.
-	mutable bool calculatedDamage[6] = {false, false, false, false, false, false};
+	mutable bool calculatedDamage = true;
+	mutable bool doesDamage = false;
 	mutable double totalLifetime = -1.;
 };
 
@@ -201,9 +230,10 @@ inline bool Weapon::IsStreamed() const { return isStreamed; }
 
 inline double Weapon::Velocity() const { return velocity; }
 inline double Weapon::RandomVelocity() const { return randomVelocity; }
+inline double Weapon::WeightedVelocity() const { return (velocityOverride > 0.) ? velocityOverride : velocity; }
 inline double Weapon::Acceleration() const { return acceleration; }
 inline double Weapon::Drag() const { return drag; }
-inline double Weapon::HardpointOffset() const { return hardpointOffset; }
+inline const Point &Weapon::HardpointOffset() const { return hardpointOffset; }
 
 inline double Weapon::Turn() const { return turn; }
 inline double Weapon::Inaccuracy() const { return inaccuracy; }
@@ -224,14 +254,21 @@ inline double Weapon::Piercing() const { return piercing; }
 inline double Weapon::SplitRange() const { return splitRange; }
 inline double Weapon::TriggerRadius() const { return triggerRadius; }
 inline double Weapon::BlastRadius() const { return blastRadius; }
-inline double Weapon::HitForce() const { return hitForce; }
+inline double Weapon::HitForce() const { return TotalDamage(HIT_FORCE); }
+
+inline bool Weapon::IsSafe() const { return isSafe; }
+inline bool Weapon::IsPhasing() const { return isPhasing; }
+inline bool Weapon::IsDamageScaled() const { return isDamageScaled; }
 
 inline double Weapon::ShieldDamage() const { return TotalDamage(SHIELD_DAMAGE); }
 inline double Weapon::HullDamage() const { return TotalDamage(HULL_DAMAGE); }
+inline double Weapon::FuelDamage() const { return TotalDamage(FUEL_DAMAGE); }
 inline double Weapon::HeatDamage() const { return TotalDamage(HEAT_DAMAGE); }
 inline double Weapon::IonDamage() const { return TotalDamage(ION_DAMAGE); }
 inline double Weapon::DisruptionDamage() const { return TotalDamage(DISRUPTION_DAMAGE); }
 inline double Weapon::SlowingDamage() const { return TotalDamage(SLOWING_DAMAGE); }
+
+inline bool Weapon::DoesDamage() const { if(!calculatedDamage) TotalDamage(0); return doesDamage; }
 
 
 

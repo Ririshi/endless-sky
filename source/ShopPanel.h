@@ -25,10 +25,10 @@ PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 #include <string>
 #include <vector>
 
+class Outfit;
 class Planet;
 class PlayerInfo;
 class Ship;
-class Outfit;
 
 
 
@@ -36,7 +36,7 @@ class Outfit;
 // outfitter panel (e.g. the sidebar with the ships you own).
 class ShopPanel : public Panel {
 public:
-	ShopPanel(PlayerInfo &player, bool isOutfitter);
+	explicit ShopPanel(PlayerInfo &player, bool isOutfitter);
 	
 	virtual void Step() override;
 	virtual void Draw() override;
@@ -57,17 +57,19 @@ protected:
 	virtual int DetailWidth() const = 0;
 	virtual int DrawDetails(const Point &center) = 0;
 	virtual bool CanBuy() const = 0;
-	virtual void Buy() = 0;
+	virtual void Buy(bool fromCargo = false) = 0;
 	virtual void FailBuy() const = 0;
-	virtual bool CanSell() const = 0;
-	virtual void Sell() = 0;
-	virtual void FailSell() const;
-	virtual bool FlightCheck() = 0;
+	virtual bool CanSell(bool toCargo = false) const = 0;
+	virtual void Sell(bool toCargo = false) = 0;
+	virtual void FailSell(bool toCargo = false) const;
 	virtual bool CanSellMultiple() const;
+	virtual bool ShouldHighlight(const Ship *ship);
 	virtual void DrawKey();
+	virtual void ToggleForSale();
+	virtual void ToggleCargo();
 	
 	// Only override the ones you need; the default action is to return false.
-	virtual bool KeyDown(SDL_Keycode key, Uint16 mod, const Command &command) override;
+	virtual bool KeyDown(SDL_Keycode key, Uint16 mod, const Command &command, bool isNewPress) override;
 	virtual bool Click(int x, int y, int clicks) override;
 	virtual bool Hover(int x, int y) override;
 	virtual bool Drag(double dx, double dy) override;
@@ -80,8 +82,8 @@ protected:
 protected:
 	class Zone : public ClickZone<const Ship *> {
 	public:
-		Zone(Point center, Point size, const Ship *ship, double scrollY = 0.);
-		Zone(Point center, Point size, const Outfit *outfit, double scrollY = 0.);
+		explicit Zone(Point center, Point size, const Ship *ship, double scrollY = 0.);
+		explicit Zone(Point center, Point size, const Outfit *outfit, double scrollY = 0.);
 		
 		const Ship *GetShip() const;
 		const Outfit *GetOutfit() const;
@@ -107,12 +109,20 @@ protected:
 	int day;
 	const Planet *planet = nullptr;
 	
+	// The player-owned ship that was first selected in the sidebar (or most recently purchased).
 	Ship *playerShip = nullptr;
+	// The player-owned ship being reordered.
 	Ship *dragShip = nullptr;
+	bool isDraggingShip = false;
 	Point dragPoint;
+	// The group of all selected, player-owned ships.
 	std::set<Ship *> playerShips;
+	
+	// The currently selected Ship, for the ShipyardPanel.
 	const Ship *selectedShip = nullptr;
+	// The currently selected Outfit, for the OutfitterPanel.
 	const Outfit *selectedOutfit = nullptr;
+	// (It may be worth moving the above pointers into the derived classes in the future.)
 	
 	double mainScroll = 0.;
 	double sideScroll = 0.;
@@ -122,7 +132,9 @@ protected:
 	int mainDetailHeight = 0;
 	int sideDetailHeight = 0;
 	bool scrollDetailsIntoView = false;
-	double selectedBottomY = 0.;
+	double selectedTopY = 0.;
+	bool sameSelectedTopY = false;
+	char hoverButton = '\0';
 	
 	std::vector<Zone> zones;
 	std::vector<ClickZone<std::string>> categoryZones;
@@ -133,6 +145,9 @@ protected:
 	
 	ShipInfoDisplay shipInfo;
 	OutfitInfoDisplay outfitInfo;
+	
+	mutable Point warningPoint;
+	mutable std::string warningType;
 	
 	
 private:
@@ -145,6 +160,9 @@ private:
 	void MainDown();
 	std::vector<Zone>::const_iterator Selected() const;
 	std::vector<Zone>::const_iterator MainStart() const;
+	// Check if the given point is within the button zone, and if so return the
+	// letter of the button (or ' ' if it's not on a button).
+	char CheckButton(int x, int y);
 };
 
 

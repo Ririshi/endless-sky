@@ -51,6 +51,14 @@ Mortgage::Mortgage(int64_t principal, int creditScore, int term)
 
 
 
+// Construct and Load() at the same time.
+Mortgage::Mortgage(const DataNode &node)
+{
+	Load(node);
+}
+
+
+
 // Load or save mortgage data.
 void Mortgage::Load(const DataNode &node)
 {
@@ -70,7 +78,7 @@ void Mortgage::Load(const DataNode &node)
 			interestString = "0." + to_string(f) + "%";
 		}
 		else if(child.Token(0) == "term" && child.Size() >= 2)
-			term = child.Value(1);
+			term = max(1., child.Value(1));
 	}
 }
 
@@ -105,7 +113,7 @@ int64_t Mortgage::MakePayment()
 
 void Mortgage::MissPayment()
 {
-	principal += static_cast<int>(principal * interest + .5);
+	principal += lround(principal * interest);
 }
 
 
@@ -160,10 +168,12 @@ int Mortgage::Term() const
 // Check the amount of the next payment due (rounded to the nearest credit).
 int64_t Mortgage::Payment() const
 {
+	if(!term)
+		return principal;
 	if(!interest)
-		return round(principal / term);
+		return lround(static_cast<double>(principal) / term);
 	
 	// Always require every payment to be at least 1 credit.
 	double power = pow(1. + interest, term);
-	return max<int64_t>(1, round(principal * interest * power / (power - 1.)));
+	return max<int64_t>(1, lround(principal * interest * power / (power - 1.)));
 }

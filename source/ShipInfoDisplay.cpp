@@ -68,8 +68,8 @@ void ShipInfoDisplay::DrawAttributes(const Point &topLeft) const
 	Point point = Draw(topLeft, attributeLabels, attributeValues);
 	
 	// Get standard colors to draw with.
-	Color labelColor = *GameData::Colors().Get("medium");
-	Color valueColor = *GameData::Colors().Get("bright");
+	const Color &labelColor = *GameData::Colors().Get("medium");
+	const Color &valueColor = *GameData::Colors().Get("bright");
 	
 	Table table;
 	table.AddColumn(10, Table::LEFT);
@@ -105,7 +105,7 @@ void ShipInfoDisplay::DrawSale(const Point &topLeft) const
 {
 	Draw(topLeft, saleLabels, saleValues);
 	
-	Color color = *GameData::Colors().Get("medium");
+	const Color &color = *GameData::Colors().Get("medium");
 	FillShader::Fill(topLeft + Point(.5 * WIDTH, saleHeight + 8.), Point(WIDTH - 20., 1.), color);
 }
 
@@ -131,16 +131,19 @@ void ShipInfoDisplay::UpdateAttributes(const Ship &ship, const Depreciation &dep
 		out << "cost (" << (100 * depreciated) / fullCost << "%):";
 		attributeLabels.push_back(out.str());
 	}
-	attributeValues.push_back(Format::Number(depreciated));
+	attributeValues.push_back(Format::Credits(depreciated));
 	attributesHeight += 20;
 	
 	attributeLabels.push_back(string());
 	attributeValues.push_back(string());
 	attributesHeight += 10;
-	if(attributes.Get("shield generation"))
+	double shieldRegen = attributes.Get("shield generation")
+		* (1. + attributes.Get("shield generation multiplier"));
+	bool hasShieldRegen = shieldRegen > 0.;
+	if(hasShieldRegen)
 	{
 		attributeLabels.push_back("shields charge / max:");
-		attributeValues.push_back(Format::Number(60. * attributes.Get("shield generation"))
+		attributeValues.push_back(Format::Number(60. * shieldRegen)
 			+ " / " + Format::Number(attributes.Get("shields")));
 	}
 	else
@@ -149,10 +152,13 @@ void ShipInfoDisplay::UpdateAttributes(const Ship &ship, const Depreciation &dep
 		attributeValues.push_back(Format::Number(attributes.Get("shields")));
 	}
 	attributesHeight += 20;
-	if(attributes.Get("hull repair rate"))
+	double hullRepair = attributes.Get("hull repair rate")
+		* (1. + attributes.Get("hull repair multiplier"));
+	bool hasHullRepair = hullRepair > 0.;
+	if(hasHullRepair)
 	{
 		attributeLabels.push_back("hull repair / max:");
-		attributeValues.push_back(Format::Number(60. * attributes.Get("hull repair rate"))
+		attributeValues.push_back(Format::Number(60. * hullRepair)
 			+ " / " + Format::Number(attributes.Get("hull")));
 	}
 	else
@@ -187,6 +193,7 @@ void ShipInfoDisplay::UpdateAttributes(const Ship &ship, const Depreciation &dep
 	
 	double fullMass = emptyMass + (isGeneric ? attributes.Get("cargo space") : ship.Cargo().Used());
 	isGeneric &= (fullMass != emptyMass);
+	double forwardThrust = attributes.Get("thrust") ? attributes.Get("thrust") : attributes.Get("afterburner thrust");
 	attributeLabels.push_back(string());
 	attributeValues.push_back(string());
 	attributesHeight += 10;
@@ -194,15 +201,15 @@ void ShipInfoDisplay::UpdateAttributes(const Ship &ship, const Depreciation &dep
 	attributeValues.push_back(string());
 	attributesHeight += 20;
 	attributeLabels.push_back("max speed:");
-	attributeValues.push_back(Format::Number(60. * attributes.Get("thrust") / attributes.Get("drag")));
+	attributeValues.push_back(Format::Number(60. * forwardThrust / attributes.Get("drag")));
 	attributesHeight += 20;
 	
 	attributeLabels.push_back("acceleration:");
 	if(!isGeneric)
-		attributeValues.push_back(Format::Number(3600. * attributes.Get("thrust") / fullMass));
+		attributeValues.push_back(Format::Number(3600. * forwardThrust / fullMass));
 	else
-		attributeValues.push_back(Format::Number(3600. * attributes.Get("thrust") / fullMass)
-			+ " / " + Format::Number(3600. * attributes.Get("thrust") / emptyMass));
+		attributeValues.push_back(Format::Number(3600. * forwardThrust / fullMass)
+			+ " / " + Format::Number(3600. *forwardThrust / emptyMass));
 	attributesHeight += 20;
 	
 	attributeLabels.push_back("turning:");
@@ -226,7 +233,7 @@ void ShipInfoDisplay::UpdateAttributes(const Ship &ship, const Depreciation &dep
 		chassis[NAMES[i]] = attributes.Get(NAMES[i]);
 	for(const auto &it : ship.Outfits())
 		for(auto &cit : chassis)
-			cit.second -= it.second * it.first->Get(cit.first);
+			cit.second -= min(0., it.second * it.first->Get(cit.first));
 	
 	attributeLabels.push_back(string());
 	attributeValues.push_back(string());
@@ -239,17 +246,20 @@ void ShipInfoDisplay::UpdateAttributes(const Ship &ship, const Depreciation &dep
 		attributesHeight += 20;
 	}
 	
-	if(ship.BaysFree(false))
+	// Print the number of bays for each bay-type we have
+	for(auto bayType : Ship::BAY_TYPES)
 	{
-		attributeLabels.push_back("drone bays:");
-		attributeValues.push_back(to_string(ship.BaysFree(false)));
-		attributesHeight += 20;
-	}
-	if(ship.BaysFree(true))
-	{
-		attributeLabels.push_back("fighter bays:");
-		attributeValues.push_back(to_string(ship.BaysFree(true)));
-		attributesHeight += 20;
+		int totalBays = ship.BaysTotal(bayType);
+		if(totalBays)
+		{
+			// make sure the label is printed in lower case
+			string bayLabel = bayType;
+			transform(bayLabel.begin(), bayLabel.end(), bayLabel.begin(), ::tolower);
+			
+			attributeLabels.emplace_back(bayLabel + " bays:");
+			attributeValues.emplace_back(to_string(totalBays));
+			attributesHeight += 20;
+		}
 	}
 	
 	tableLabels.clear();
@@ -262,22 +272,25 @@ void ShipInfoDisplay::UpdateAttributes(const Ship &ship, const Depreciation &dep
 	energyTable.push_back(Format::Number(
 		60. * (attributes.Get("energy generation")
 			+ attributes.Get("solar collection")
+			+ attributes.Get("fuel energy")
 			- attributes.Get("energy consumption")
 			- attributes.Get("cooling energy"))));
 	double efficiency = ship.CoolingEfficiency();
 	heatTable.push_back(Format::Number(
-		60. * (attributes.Get("heat generation")
+		60. * (attributes.Get("heat generation") 
+			+ attributes.Get("solar heat")
+			+ attributes.Get("fuel heat")
 			- efficiency * (attributes.Get("cooling") + attributes.Get("active cooling")))));
 	attributesHeight += 20;
 	tableLabels.push_back("moving:");
 	energyTable.push_back(Format::Number(
-		-60. * (attributes.Get("thrusting energy")
-			+ attributes.Get("reverse thrusting energy")
-			+ attributes.Get("turning energy"))));
+		-60. * (max(attributes.Get("thrusting energy"), attributes.Get("reverse thrusting energy"))
+			+ attributes.Get("turning energy")
+			+ attributes.Get("afterburner energy"))));
 	heatTable.push_back(Format::Number(
-		60. * (attributes.Get("thrusting heat")
-			+ attributes.Get("reverse thrusting heat")
-			+ attributes.Get("turning heat"))));
+		60. * (max(attributes.Get("thrusting heat"), attributes.Get("reverse thrusting heat"))
+			+ attributes.Get("turning heat")
+			+ attributes.Get("afterburner heat"))));
 	attributesHeight += 20;
 	double firingEnergy = 0.;
 	double firingHeat = 0.;
@@ -291,18 +304,22 @@ void ShipInfoDisplay::UpdateAttributes(const Ship &ship, const Depreciation &dep
 	energyTable.push_back(Format::Number(-60. * firingEnergy));
 	heatTable.push_back(Format::Number(60. * firingHeat));
 	attributesHeight += 20;
-	double shieldEnergy = attributes.Get("shield energy");
-	double hullEnergy = attributes.Get("hull energy");
+	double shieldEnergy = (hasShieldRegen) ? attributes.Get("shield energy")
+		* (1. + attributes.Get("shield energy multiplier")) : 0.;
+	double hullEnergy = (hasHullRepair) ? attributes.Get("hull energy")
+		* (1. + attributes.Get("hull energy multiplier")) : 0.;
 	tableLabels.push_back((shieldEnergy && hullEnergy) ? "shields / hull:" :
 		hullEnergy ? "repairing hull:" : "charging shields:");
 	energyTable.push_back(Format::Number(-60. * (shieldEnergy + hullEnergy)));
-	double shieldHeat = attributes.Get("shield heat");
-	double hullHeat = attributes.Get("hull heat");
+	double shieldHeat = (hasShieldRegen) ? attributes.Get("shield heat")
+		* (1. + attributes.Get("shield heat multiplier")) : 0.;
+	double hullHeat = (hasHullRepair) ? attributes.Get("hull heat")
+		* (1. + attributes.Get("hull heat multiplier")) : 0.;
 	heatTable.push_back(Format::Number(60. * (shieldHeat + hullHeat)));
 	attributesHeight += 20;
 	tableLabels.push_back("max:");
 	energyTable.push_back(Format::Number(attributes.Get("energy capacity")));
-	heatTable.push_back(Format::Number(60. * emptyMass * .1 * attributes.Get("heat dissipation")));
+	heatTable.push_back(Format::Number(60. * ship.HeatDissipation() * ship.MaximumHeat()));
 	// Pad by 10 pixels on the top and bottom.
 	attributesHeight += 30;
 }
@@ -352,10 +369,9 @@ void ShipInfoDisplay::UpdateOutfits(const Ship &ship, const Depreciation &deprec
 	saleValues.push_back(string());
 	saleHeight += 20;
 	saleLabels.push_back("empty hull:");
-	saleValues.push_back(Format::Number(chassisCost));
+	saleValues.push_back(Format::Credits(chassisCost));
 	saleHeight += 20;
 	saleLabels.push_back("  + outfits:");
-	saleValues.push_back(Format::Number(totalCost - chassisCost));
+	saleValues.push_back(Format::Credits(totalCost - chassisCost));
 	saleHeight += 5;
 }
-

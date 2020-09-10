@@ -14,11 +14,14 @@ PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 #define LOGBOOK_PANEL_H_
 
 #include "Panel.h"
-#include "PlayerInfo.h"
+
+#include "Date.h"
 
 #include <map>
 #include <string>
 #include <vector>
+
+class PlayerInfo;
 
 
 
@@ -35,14 +38,14 @@ public:
 	
 protected:
 	// Event handlers.
-	virtual bool KeyDown(SDL_Keycode key, Uint16 mod, const Command &command) override;
+	virtual bool KeyDown(SDL_Keycode key, Uint16 mod, const Command &command, bool isNewPress) override;
 	virtual bool Click(int x, int y, int clicks) override;
 	virtual bool Drag(double dx, double dy) override;
 	virtual bool Scroll(double dx, double dy) override;
 	
 	
 private:
-	void Update();
+	void Update(bool selectLast = true);
 	
 	
 private:
@@ -50,7 +53,8 @@ private:
 	PlayerInfo &player;
 	
 	// Current month being displayed:
-	Date selected;
+	Date selectedDate;
+	std::string selectedName;
 	std::multimap<Date, std::string>::const_iterator begin;
 	std::multimap<Date, std::string>::const_iterator end;
 	// Other months available for display:

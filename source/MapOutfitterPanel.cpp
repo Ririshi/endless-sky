@@ -45,6 +45,7 @@ MapOutfitterPanel::MapOutfitterPanel(const MapPanel &panel, bool onlyHere)
 {
 	Init();
 	onlyShowSoldHere = onlyHere;
+	UpdateCache();
 }
 
 
@@ -102,6 +103,7 @@ void MapOutfitterPanel::Select(int index)
 		selected = list[index];
 		selectedInfo.Update(*selected, player);
 	}
+	UpdateCache();
 }
 
 
@@ -183,7 +185,7 @@ void MapOutfitterPanel::DrawItems()
 		
 		for(const Outfit *outfit : it->second)
 		{
-			string price = Format::Number(outfit->Cost()) + " credits";
+			string price = Format::Credits(outfit->Cost()) + " credits";
 			
 			string info;
 			if(outfit->Get("installable") < 0.)

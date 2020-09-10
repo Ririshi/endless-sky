@@ -29,19 +29,20 @@ namespace {
 		{"launch", Conversation::LAUNCH},
 		{"flee", Conversation::FLEE},
 		{"depart", Conversation::DEPART},
-		{"die", Conversation::DIE}
+		{"die", Conversation::DIE},
+		{"explode", Conversation::EXPLODE}
 	};
 	
 	// Get the index of the given special string. 0 means it is "goto", a number
 	// less than 0 means it is an outcome, and 1 means no match.
-	static int TokenIndex(const string &token)
+	int TokenIndex(const string &token)
 	{
 		auto it = TOKEN_INDEX.find(token);
 		return (it == TOKEN_INDEX.end() ? 0 : it->second);
 	}
 	
 	// Map an index back to a string, for saving the conversation to a file.
-	static string TokenName(int index)
+	string TokenName(int index)
 	{
 		for(const auto &it : TOKEN_INDEX)
 			if(it.second == index)
@@ -51,7 +52,7 @@ namespace {
 	}
 	
 	// Write a "goto" or endpoint.
-	static void WriteToken(int index, DataWriter &out)
+	void WriteToken(int index, DataWriter &out)
 	{
 		out.BeginChild();
 		{
@@ -72,6 +73,7 @@ const int Conversation::LAUNCH;
 const int Conversation::FLEE;
 const int Conversation::DEPART;
 const int Conversation::DIE;
+const int Conversation::EXPLODE;
 
 
 
@@ -112,8 +114,17 @@ void Conversation::Load(const DataNode &node)
 		{
 			// Create a new node with one or more choices in it.
 			nodes.emplace_back(true);
+			bool foundErrors = false;
 			for(const DataNode &grand : child)
 			{
+				// Check for common errors such as indenting a goto incorrectly:
+				if(grand.Size() > 1)
+				{
+					grand.PrintTrace("Conversation choices should be a single token:");
+					foundErrors = true;
+					continue;
+				}
+				
 				// Store the text of this choice. By default, the choice will
 				// just bring you to the next node in the script.
 				nodes.back().data.emplace_back(grand.Token(0), nodes.size());
@@ -123,7 +134,8 @@ void Conversation::Load(const DataNode &node)
 			}
 			if(nodes.back().data.empty())
 			{
-				child.PrintTrace("Conversation contains an empty \"choice\" node:");
+				if(!foundErrors)
+					child.PrintTrace("Conversation contains an empty \"choice\" node:");
 				nodes.pop_back();
 			}
 		}
@@ -161,6 +173,9 @@ void Conversation::Load(const DataNode &node)
 			nodes.back().canMergeOnto = false;
 			nodes.back().conditions.Load(child);
 		}
+		// Check for common errors such as indenting a goto incorrectly:
+		else if(child.Size() > 1)
+			child.PrintTrace("Conversation text should be a single token:");
 		else
 		{
 			// This is just an ordinary text node.
@@ -249,18 +264,8 @@ void Conversation::Save(DataWriter &out) const
 			for(const auto &it : node.data)
 			{
 				// Break the text up into paragraphs.
-				size_t begin = 0;
-				while(begin < it.first.length())
-				{
-					// Find the next line break.
-					size_t pos = it.first.find('\n', begin);
-					// Text should always end with a line break, but just in case:
-					if(pos == string::npos)
-						pos = it.first.length();
-					out.Write(it.first.substr(begin, pos - begin));
-					// Skip the actual newline character when writing the text out.
-					begin = pos + 1;
-				}
+				for(const string &line : Format::Split(it.first, "\n"))
+					out.Write(line);
 				// Check what node the conversation goes to after this.
 				int index = it.second;
 				if(index > 0 && static_cast<unsigned>(index) >= nodes.size())

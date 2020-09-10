@@ -12,6 +12,7 @@ PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 
 #include "PlayerInfoPanel.h"
 
+#include "Command.h"
 #include "Font.h"
 #include "FontSet.h"
 #include "Format.h"
@@ -31,6 +32,7 @@ PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 
 #include <algorithm>
 #include <cmath>
+#include <utility>
 
 using namespace std;
 
@@ -41,9 +43,9 @@ namespace {
 	// Find any condition strings that begin with the given prefix, and convert
 	// them to strings ending in the given suffix (if any). Return those strings
 	// plus the values of the conditions.
-	vector<pair<int, string>> Match(const PlayerInfo &player, const string &prefix, const string &suffix)
+	vector<pair<int64_t, string>> Match(const PlayerInfo &player, const string &prefix, const string &suffix)
 	{
-		vector<pair<int, string>> match;
+		vector<pair<int64_t, string>> match;
 		
 		auto it = player.Conditions().lower_bound(prefix);
 		for( ; it != player.Conditions().end(); ++it)
@@ -51,13 +53,13 @@ namespace {
 			if(it->first.compare(0, prefix.length(), prefix))
 				break;
 			if(it->second > 0)
-				match.push_back(pair<int, string>(it->second, it->first.substr(prefix.length()) + suffix));
+				match.emplace_back(it->second, it->first.substr(prefix.length()) + suffix);
 		}
 		return match;
 	}
 	
 	// Draw a list of (string, value) pairs.
-	void DrawList(vector<pair<int, string>> &list, Table &table, const string &title, int maxCount = 0, bool drawValues = true)
+	void DrawList(vector<pair<int64_t, string>> &list, Table &table, const string &title, int maxCount = 0, bool drawValues = true)
 	{
 		if(list.empty())
 			return;
@@ -74,15 +76,14 @@ namespace {
 			}
 		}
 		
-		Color dim = *GameData::Colors().Get("medium");
-		Color bright = *GameData::Colors().Get("bright");
+		const Color &dim = *GameData::Colors().Get("medium");
 		table.DrawGap(10);
 		table.DrawUnderline(dim);
-		table.Draw(title, bright);
+		table.Draw(title, *GameData::Colors().Get("bright"));
 		table.Advance();
 		table.DrawGap(5);
 		
-		for(const pair<int, string> &it : list)
+		for(const auto &it : list)
 		{
 			table.Draw(it.second, dim);
 			if(drawValues)
@@ -158,7 +159,7 @@ void PlayerInfoPanel::Draw()
 		}
 	}
 	interfaceInfo.SetCondition("three buttons");
-	if(!player.Logbook().empty())
+	if(player.HasLogs())
 		interfaceInfo.SetCondition("enable logbook");
 	
 	// Draw the interface.
@@ -173,9 +174,19 @@ void PlayerInfoPanel::Draw()
 
 
 
-bool PlayerInfoPanel::KeyDown(SDL_Keycode key, Uint16 mod, const Command &command)
+bool PlayerInfoPanel::AllowFastForward() const
 {
-	if(key == 'd' || key == SDLK_ESCAPE || (key == 'w' && (mod & (KMOD_CTRL | KMOD_GUI))))
+	return true;
+}
+
+
+
+bool PlayerInfoPanel::KeyDown(SDL_Keycode key, Uint16 mod, const Command &command, bool isNewPress)
+{
+	bool control = (mod & (KMOD_CTRL | KMOD_GUI));
+	bool shift = (mod & KMOD_SHIFT);
+	if(key == 'd' || key == SDLK_ESCAPE || (key == 'w' && control)
+			|| key == 'i' || command.Has(Command::INFO))
 		GetUI()->Pop(this);
 	else if(key == 's' || key == SDLK_RETURN || key == SDLK_KP_ENTER)
 	{
@@ -208,6 +219,52 @@ bool PlayerInfoPanel::KeyDown(SDL_Keycode key, Uint16 mod, const Command &comman
 				Scroll(-player.Ships().size());
 			}
 		}
+		// Holding both Ctrl & Shift keys and using the arrows moves the
+		// selected ship group up or down one row.
+		else if(!allSelected.empty() && control && shift)
+		{
+			// Move based on the position of the first selected ship. An upward
+			// movement is a shift of one, while a downward move shifts 1 and
+			// then 1 for each ship in the contiguous selection.
+			size_t toIndex = *allSelected.begin();
+			if(key == SDLK_UP && toIndex > 0)
+				--toIndex;
+			else if(key == SDLK_DOWN)
+			{
+				int next = ++toIndex;
+				for(set<int>::const_iterator sel = allSelected.begin(); ++sel != allSelected.end(); )
+				{
+					if(*sel != next)
+						break;
+					
+					++toIndex;
+					++next;
+				}
+			}
+			
+			// Clamp the destination index to the end of the ships list.
+			size_t moved = allSelected.size();
+			toIndex = min(player.Ships().size() - moved, toIndex);
+			selectedIndex = player.ReorderShips(allSelected, toIndex);
+			// If the move accessed invalid indices, no moves are done
+			// but the selectedIndex is set to -1.
+			if(selectedIndex < 0)
+				selectedIndex = *allSelected.begin();
+			else
+			{
+				// Update the selected indices so they still refer
+				// to the block of ships that just got moved.
+				int lastIndex = selectedIndex + moved;
+				allSelected.clear();
+				for(int i = selectedIndex; i < lastIndex; ++i)
+					allSelected.insert(i);
+			}
+			// Update the scroll if necessary to keep the selected ship on screen.
+			int scrollDirection = ((selectedIndex >= scroll + LINES_PER_PAGE) - (selectedIndex < scroll));
+			if(selectedIndex >= 0 && Scroll((LINES_PER_PAGE - 2) * scrollDirection))
+				hoverIndex = -1;
+			return true;
+		}
 		else
 		{
 			// Move the selection up or down one space.
@@ -228,7 +285,7 @@ bool PlayerInfoPanel::KeyDown(SDL_Keycode key, Uint16 mod, const Command &comman
 		if(selectedIndex >= 0)
 			allSelected.insert(selectedIndex);
 	}
-	else if(canEdit && key == 'P' && !allSelected.empty())
+	else if(canEdit && (key == 'P' || (key == 'p' && shift)) && !allSelected.empty())
 	{
 		// Toggle the parked status for all selected ships.
 		bool allParked = true;
@@ -247,7 +304,7 @@ bool PlayerInfoPanel::KeyDown(SDL_Keycode key, Uint16 mod, const Command &comman
 				player.ParkShip(&ship, !allParked);
 		}
 	}
-	else if(canEdit && key == 'A' && player.Ships().size() > 1)
+	else if(canEdit && (key == 'A' || (key == 'a' && shift)) && player.Ships().size() > 1)
 	{
 		// Toggle the parked status for all ships except the flagship.
 		bool allParked = true;
@@ -260,10 +317,51 @@ bool PlayerInfoPanel::KeyDown(SDL_Keycode key, Uint16 mod, const Command &comman
 			if(!it->IsDisabled() && (allParked || it.get() != flagship))
 				player.ParkShip(it.get(), !allParked);
 	}
-	else if(command.Has(Command::INFO | Command::MAP) || key == 'm')
+	else if(command.Has(Command::MAP) || key == 'm')
 		GetUI()->Push(new MissionPanel(player));
-	else if(key == 'l' && !player.Logbook().empty())
+	else if(key == 'l' && player.HasLogs())
 		GetUI()->Push(new LogbookPanel(player));
+	else if(key >= '0' && key <= '9')
+	{
+		int group = key - '0';
+		if(control)
+		{
+			// Convert from indices into ship pointers.
+			set<Ship *> selected;
+			for(int i : allSelected)
+				selected.insert(player.Ships()[i].get());
+			player.SetGroup(group, &selected);
+		}
+		else
+		{
+			// Convert ship pointers into indices in the ship list.
+			set<int> added;
+			for(Ship *ship : player.GetGroup(group))
+				for(unsigned i = 0; i < player.Ships().size(); ++i)
+					if(player.Ships()[i].get() == ship)
+						added.insert(i);
+			
+			// If the shift key is not down, replace the current set of selected
+			// ships with the group with the given index.
+			if(!shift)
+				allSelected = added;
+			else
+			{
+				// If every single ship in this group is already selected, shift
+				// plus the group number means to deselect all those ships.
+				bool allWereSelected = true;
+				for(int i : added)
+					allWereSelected &= allSelected.erase(i);
+				
+				if(!allWereSelected)
+					for(int i : added)
+						allSelected.insert(i);
+			}
+			
+			// Any ships are selected now, the first one is the selected index.
+			selectedIndex = (allSelected.empty() ? -1 : *allSelected.begin());
+		}
+	}
 	else
 		return false;
 	
@@ -272,38 +370,43 @@ bool PlayerInfoPanel::KeyDown(SDL_Keycode key, Uint16 mod, const Command &comman
 
 
 
-bool PlayerInfoPanel::Click(int x, int y, int clicks)
+bool PlayerInfoPanel::Click(int /* x */, int /* y */, int clicks)
 {
-	draggingIndex = -1;
+	// Do nothing if the click was not on one of the ships in the fleet list.
+	if(hoverIndex < 0)
+		return true;
+	
 	bool shift = (SDL_GetModState() & KMOD_SHIFT);
 	bool control = (SDL_GetModState() & (KMOD_CTRL | KMOD_GUI));
 	if(canEdit && (shift || control || clicks < 2))
 	{
 		// Only allow changing your flagship when landed.
-		if(hoverIndex >= 0)
+		if(control && allSelected.count(hoverIndex))
+			allSelected.erase(hoverIndex);
+		else
 		{
-			if(shift)
+			if(allSelected.count(hoverIndex))
+			{
+				// If the click is on an already selected line, start dragging
+				// but do not change the selection.
+			}
+			else if(control)
+				allSelected.insert(hoverIndex);
+			else if(shift)
 			{
 				// Select all the ships between the previous selection and this one.
-				for(int i = max(0, min(selectedIndex, hoverIndex)); i < max(selectedIndex, hoverIndex); ++i)
+				for(int i = max(0, min(selectedIndex, hoverIndex)); i <= max(selectedIndex, hoverIndex); ++i)
 					allSelected.insert(i);
 			}
-			else if(!control)
-			{
-				allSelected.clear();
-				draggingIndex = hoverIndex;
-			}
-			
-			if(control && allSelected.count(hoverIndex))
-				allSelected.erase(hoverIndex);
 			else
 			{
+				allSelected.clear();
 				allSelected.insert(hoverIndex);
-				selectedIndex = hoverIndex;
 			}
+			selectedIndex = hoverIndex;
 		}
 	}
-	else if(hoverIndex >= 0)
+	else
 	{
 		// If not landed, clicking a ship name takes you straight to its info.
 		GetUI()->Pop(this);
@@ -324,6 +427,7 @@ bool PlayerInfoPanel::Hover(int x, int y)
 
 bool PlayerInfoPanel::Drag(double dx, double dy)
 {
+	isDragging = true;
 	return Hover(hoverPoint + Point(dx, dy));
 }
 
@@ -331,19 +435,26 @@ bool PlayerInfoPanel::Drag(double dx, double dy)
 
 bool PlayerInfoPanel::Release(int x, int y)
 {
-	// Drag and drop can be used to reorder the player's ships.
-	// TODO: insert *every* selected ship at this index.
-	if(canEdit && draggingIndex >= 0 && hoverIndex >= 0 && hoverIndex != draggingIndex)
-	{
-		player.ReorderShip(draggingIndex, hoverIndex);
+	if(!isDragging)
+		return true;
+	isDragging = false;
 	
-		// The ship we just dragged should remain selected.
-		selectedIndex = hoverIndex;
-		allSelected.clear();
-		if(selectedIndex >= 0)
-			allSelected.insert(selectedIndex);
-	}
-	draggingIndex = -1;
+	// Do nothing if the block of ships has not been dragged to a valid new
+	// location in the list, or if it's not possible to reorder the list.
+	if(!canEdit || hoverIndex < 0 || hoverIndex == selectedIndex)
+		return true;
+	
+	// Try to move all the selected ships to this location.
+	selectedIndex = player.ReorderShips(allSelected, hoverIndex);
+	if(selectedIndex < 0)
+		return true;
+	
+	// Change the selected indices so they still refer to the block of ships
+	// that just got moved.
+	int lastIndex = selectedIndex + allSelected.size();
+	allSelected.clear();
+	for(int i = selectedIndex; i < lastIndex; ++i)
+		allSelected.insert(i);
 	
 	return true;
 }
@@ -378,11 +489,12 @@ void PlayerInfoPanel::DrawPlayer(const Rectangle &bounds)
 	table.Draw("player:", dim);
 	table.Draw(player.FirstName() + " " + player.LastName(), bright);
 	table.Draw("net worth:", dim);
-	table.Draw(Format::Number(player.Accounts().NetWorth()) + " credits", bright);
+	table.Draw(Format::Credits(player.Accounts().NetWorth()) + " credits", bright);
 	
 	// Determine the player's combat rating.
-	static const vector<string> &RATINGS = GameData::CombatRatings();
-	if(!RATINGS.empty())
+	int combatLevel = log(max<int64_t>(1, player.GetCondition("combat rating")));
+	const string &combatRating = GameData::Rating("combat", combatLevel);
+	if(!combatRating.empty())
 	{
 		table.DrawGap(10);
 		table.DrawUnderline(dim);
@@ -390,11 +502,35 @@ void PlayerInfoPanel::DrawPlayer(const Rectangle &bounds)
 		table.Advance();
 		table.DrawGap(5);
 		
-		int ratingLevel = min<int>(RATINGS.size() - 1, log(max(1, player.GetCondition("combat rating"))));
-		table.Draw(RATINGS[ratingLevel], dim);
-		table.Draw("(" + to_string(ratingLevel) + ")", dim);
+		table.Draw(combatRating, dim);
+		table.Draw("(" + to_string(combatLevel) + ")", dim);
 	}
 	
+	// Display the factors affecting piracy targeting the player.
+	pair<double, double> factors = player.RaidFleetFactors();
+	double attractionLevel = max(0., log2(max(factors.first, 0.)));
+	double deterrenceLevel = max(0., log2(max(factors.second, 0.)));
+	const string &attractionRating = GameData::Rating("cargo attractiveness", attractionLevel);
+	const string &deterrenceRating = GameData::Rating("armament deterrence", deterrenceLevel);
+	if(!attractionRating.empty() && !deterrenceRating.empty())
+	{
+		double attraction = max(0., min(1., .005 * (factors.first - factors.second - 2.)));
+		double prob = 1. - pow(1. - attraction, 10.);
+		
+		table.DrawGap(10);
+		table.DrawUnderline(dim);
+		table.Draw("piracy threat:", bright);
+		table.Draw(to_string(lround(100 * prob)) + "%", dim);
+		table.DrawGap(5);
+		
+		// Format the attraction and deterrence levels with tens places, so it
+		// is clear which is higher even if they round to the same level.
+		table.Draw("cargo: " + attractionRating, dim);
+		table.Draw("(+" + Format::Decimal(attractionLevel, 1) + ")", dim);
+		table.DrawGap(5);
+		table.Draw("fleet: " + deterrenceRating, dim);
+		table.Draw("(-" + Format::Decimal(deterrenceLevel, 1) + ")", dim);
+	}
 	// Other special information:
 	auto salary = Match(player, "salary: ", "");
 	sort(salary.begin(), salary.end());
@@ -422,7 +558,7 @@ void PlayerInfoPanel::DrawFleet(const Rectangle &bounds)
 	Color dim = *GameData::Colors().Get("medium");
 	Color bright = *GameData::Colors().Get("bright");
 	Color elsewhere = *GameData::Colors().Get("dim");
-	Color dead(.4, 0., 0., 0.);
+	Color dead(.4f, 0.f, 0.f, 0.f);
 	
 	// Table attributes.
 	Table table;
@@ -450,8 +586,8 @@ void PlayerInfoPanel::DrawFleet(const Rectangle &bounds)
 	
 	// Loop through all the player's ships.
 	int index = scroll;
-	auto sit = player.Ships().begin() + scroll;
-	for( ; sit < player.Ships().end(); ++sit)
+	const Font &font = FontSet::Get(14);
+	for(auto sit = player.Ships().begin() + scroll; sit < player.Ships().end(); ++sit)
 	{
 		// Bail out if we've used out the whole drawing area.
 		if(!bounds.Contains(table.GetRowBounds()))
@@ -472,7 +608,7 @@ void PlayerInfoPanel::DrawFleet(const Rectangle &bounds)
 		zones.emplace_back(table.GetCenterPoint(), table.GetRowSize(), index);
 		
 		// Indent the ship name if it is a fighter or drone.
-		table.Draw(ship.CanBeCarried() ? "    " + ship.Name() : ship.Name());
+		table.Draw(font.TruncateMiddle(ship.CanBeCarried() ? "    " + ship.Name() : ship.Name(), 217));
 		table.Draw(ship.ModelName());
 		
 		const System *system = ship.GetSystem();
@@ -500,13 +636,17 @@ void PlayerInfoPanel::DrawFleet(const Rectangle &bounds)
 	}
 	
 	// Re-ordering ships in your fleet.
-	if(draggingIndex >= 0)
+	if(isDragging)
 	{
 		const Font &font = FontSet::Get(14);
-		const string &name = player.Ships()[draggingIndex]->Name();
-		Point pos(hoverPoint.X() - .5 * font.Width(name), hoverPoint.Y());
-		font.Draw(name, pos + Point(1., 1.), Color(0., 1.));
-		font.Draw(name, pos, bright);
+		Point pos(hoverPoint.X(), hoverPoint.Y());
+		for(int i : allSelected)
+		{
+			const string &name = player.Ships()[i]->Name();
+			font.Draw(name, pos + Point(1., 1.), Color(0., 1.));
+			font.Draw(name, pos, bright);
+			pos.Y() += 20.;
+		}
 	}
 }
 

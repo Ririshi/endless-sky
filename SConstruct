@@ -1,17 +1,14 @@
 import os
+from SCons.Node.FS import Dir
 
-# Load any environment variables that alter the build.
-env = Environment()
-if 'CCFLAGS' in os.environ:
-	env.Append(CCFLAGS = os.environ['CCFLAGS'])
+# Load environment variables, including some that should be renamed.
+env = Environment(ENV = os.environ)
+if 'CXX' in os.environ:
+	env['CXX'] = os.environ['CXX']
 if 'CXXFLAGS' in os.environ:
 	env.Append(CCFLAGS = os.environ['CXXFLAGS'])
-if 'CPPFLAGS' in os.environ:
-	env.Append(CPPFLAGS = os.environ['CPPFLAGS'])
 if 'LDFLAGS' in os.environ:
 	env.Append(LINKFLAGS = os.environ['LDFLAGS'])
-if 'CPPPATH' in os.environ:
-	env.Append(CPPPATH = os.environ['CPPPATH'])
 
 # The Steam runtime has an out-of-date libstdc++, so link it in statically:
 if 'SCHROOT_CHROOT_NAME' in os.environ and 'steamrt' in os.environ['SCHROOT_CHROOT_NAME']:
@@ -21,6 +18,7 @@ opts = Variables()
 opts.Add(PathVariable("PREFIX", "Directory to install under", "/usr/local", PathVariable.PathIsDirCreate))
 opts.Add(PathVariable("DESTDIR", "Destination root directory", "", PathVariable.PathAccept))
 opts.Add(EnumVariable("mode", "Compilation mode", "release", allowed_values=("release", "debug", "profile")))
+opts.Add(PathVariable("BUILDDIR", "Build directory", "build", PathVariable.PathIsDirCreate))
 opts.Update(env)
 
 Help(opts.GenerateHelpText(env))
@@ -55,14 +53,19 @@ else:
 	env.Append(LIBS = "mad")
 
 
-# Work with clang's static analyzer:
-env["CC"] = os.getenv("CC") or env["CC"]
-env["CXX"] = os.getenv("CXX") or env["CXX"]
-env["ENV"].update(x for x in os.environ.items() if x[0].startswith("CCC_"))
+buildDirectory = env["BUILDDIR"] + "/" + env["mode"]
+VariantDir(buildDirectory, "source", duplicate = 0)
 
-VariantDir("build/" + env["mode"], "source", duplicate = 0)
+# Find all source files.
+def RecursiveGlob(pattern, dir_name=buildDirectory):
+	# Start with source files in subdirectories.
+	matches = [RecursiveGlob(pattern, sub_dir) for sub_dir in Glob(str(dir_name)+"/*")
+			   if isinstance(sub_dir, Dir)]
+	# Add source files in this directory
+	matches += Glob(str(dir_name) + "/" + pattern)
+	return matches
 
-sky = env.Program("endless-sky", Glob("build/" + env["mode"] + "/*.cpp"))
+sky = env.Program("endless-sky", RecursiveGlob("*.cpp", buildDirectory))
 
 
 # Install the binary:
@@ -76,7 +79,7 @@ env.Install("$DESTDIR$PREFIX/share/appdata", "endless-sky.appdata.xml")
 
 # Install icons, keeping track of all the paths.
 # Most Ubuntu apps supply 16, 22, 24, 32, 48, and 256, and sometimes others.
-sizes = ["16x16", "22x22", "24x24", "32x32", "48x48", "256x256"]
+sizes = ["16x16", "22x22", "24x24", "32x32", "48x48", "128x128", "256x256", "512x512"]
 icons = []
 for size in sizes:
 	destination = "$DESTDIR$PREFIX/share/icons/hicolor/" + size + "/apps/endless-sky.png"

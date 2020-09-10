@@ -13,8 +13,11 @@ PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 #include "Armament.h"
 
 #include "Command.h"
+#include "Files.h"
+#include "Outfit.h"
 #include "Ship.h"
 
+#include <algorithm>
 #include <cmath>
 #include <limits>
 
@@ -47,8 +50,15 @@ void Armament::Add(const Outfit *outfit, int count)
 	if(!count || !outfit || !outfit->IsWeapon())
 		return;
 	
-	int total = 0;
+	int existing = 0;
+	int added = 0;
 	bool isTurret = outfit->Get("turret mounts");
+	// Do not equip weapons that do not define how they are mounted.
+	if(!isTurret && !outfit->Get("gun ports"))
+	{
+		Files::LogError("Skipping unmountable outfit \"" + outfit->Name() + "\". Weapon outfits must specify either \"gun ports\" or \"turret mounts\".");
+		return;
+	}
 	
 	// To start out with, check how many instances of this weapon are already
 	// installed. If "adding" a negative number of outfits, remove the installed
@@ -66,7 +76,7 @@ void Armament::Add(const Outfit *outfit, int count)
 				++count;
 			}
 			else
-				++total;
+				++existing;
 		}
 		else if(!hardpoint.GetOutfit() && hardpoint.IsTurret() == isTurret)
 		{
@@ -77,15 +87,20 @@ void Armament::Add(const Outfit *outfit, int count)
 			{
 				hardpoint.Install(outfit);
 				--count;
-				++total;
+				++added;
 			}
 		}
 	}
 	
+	// If a stream counter already exists for this outfit (because we did not
+	// just add the first one or remove the last one), do nothing.
+	if(existing)
+		return;
+	
 	// If this weapon is streamed, create a stream counter. If it is not
 	// streamed, or if the last of this weapon has been uninstalled, erase the
 	// stream counter (if there is one).
-	if(total && outfit->IsStreamed())
+	if(added && outfit->IsStreamed())
 		streamReload[outfit] = 0;
 	else
 		streamReload.erase(outfit);
@@ -97,15 +112,26 @@ void Armament::Add(const Outfit *outfit, int count)
 // set up properly (even the ones that were pre-assigned to a hardpoint).
 void Armament::FinishLoading()
 {
+	for(Hardpoint &hardpoint : hardpoints)
+		if(hardpoint.GetOutfit())
+			hardpoint.Install(hardpoint.GetOutfit());
+	
+	ReloadAll();
+}
+
+
+
+// Reload all weapons (because a day passed in-game).
+void Armament::ReloadAll()
+{
 	streamReload.clear();
 	for(Hardpoint &hardpoint : hardpoints)
 		if(hardpoint.GetOutfit())
 		{
-			const Outfit *outfit = hardpoint.GetOutfit();
+			hardpoint.Reload();
 			
-			// Make sure the firing angle is set properly.
-			hardpoint.Install(outfit);
 			// If this weapon is streamed, create a stream counter.
+			const Outfit *outfit = hardpoint.GetOutfit();
 			if(outfit->IsStreamed())
 				streamReload[outfit] = 0;
 		}
@@ -171,7 +197,7 @@ void Armament::Aim(const Command &command)
 
 // Fire the given weapon, if it is ready. If it did not fire because it is
 // not ready, return false.
-void Armament::Fire(int index, Ship &ship, list<Projectile> &projectiles, list<Effect> &effects)
+void Armament::Fire(int index, Ship &ship, vector<Projectile> &projectiles, vector<Visual> &visuals)
 {
 	if(static_cast<unsigned>(index) >= hardpoints.size() || !hardpoints[index].IsReady())
 		return;
@@ -187,17 +213,17 @@ void Armament::Fire(int index, Ship &ship, list<Projectile> &projectiles, list<E
 			it->second += it->first->Reload() * hardpoints[index].BurstRemaining();
 		}
 	}
-	hardpoints[index].Fire(ship, projectiles, effects);
+	hardpoints[index].Fire(ship, projectiles, visuals);
 }
 
 
 
-bool Armament::FireAntiMissile(int index, Ship &ship, const Projectile &projectile, list<Effect> &effects)
+bool Armament::FireAntiMissile(int index, Ship &ship, const Projectile &projectile, vector<Visual> &visuals)
 {
 	if(static_cast<unsigned>(index) >= hardpoints.size() || !hardpoints[index].IsReady())
 		return false;
 	
-	return hardpoints[index].FireAntiMissile(ship, projectile, effects);
+	return hardpoints[index].FireAntiMissile(ship, projectile, visuals);
 }
 
 

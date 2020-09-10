@@ -14,6 +14,7 @@ PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 #define DRAW_LIST_H_
 
 #include "Point.h"
+#include "SpriteShader.h"
 
 #include <cstdint>
 #include <vector>
@@ -36,9 +37,11 @@ public:
 	
 	// Add an object based on the Body class.
 	bool Add(const Body &body, double cloak = 0.);
+	// Add an object at the given position (rather than its own).
 	bool Add(const Body &body, Point position);
+	// Add an object that should not be drawn with motion blur.
 	bool AddUnblurred(const Body &body);
-	bool AddProjectile(const Body &body, const Point &adjustedVelocity, double clip);
+	// Add an object using a specific swizzle (rather than its own).
 	bool AddSwizzled(const Body &body, int swizzle);
 	
 	// Draw all the items in this list.
@@ -46,38 +49,17 @@ public:
 	
 	
 private:
+	// Determine if the given object should be drawn at all.
 	bool Cull(const Body &body, const Point &position, const Point &blur) const;
 	
 	void Push(const Body &body, Point pos, Point blur, double cloak, double clip, int swizzle);
 	
 	
 private:
-	class Item {
-	public:
-		// Get the color swizzle.
-		uint32_t Swizzle() const;
-		
-		float Clip() const;
-		float Fade() const;
-		
-		void Cloak(double cloak);
-		
-	public:
-		uint32_t tex0;
-		uint32_t tex1;
-		float position[2];
-		float transform[4];
-		float blur[2];
-		float clip;
-		uint32_t flags;
-	};
-	
-	
-private:
 	int step = 0;
 	double zoom = 1.;
 	bool isHighDPI = false;
-	std::vector<Item> items;
+	std::vector<SpriteShader::Item> items;
 	
 	Point center;
 	Point centerVelocity;

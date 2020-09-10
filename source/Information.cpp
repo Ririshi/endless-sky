@@ -18,12 +18,11 @@ using namespace std;
 
 
 
-void Information::SetSprite(const string &name, const Sprite *sprite, const Point &unit, int frame)
+void Information::SetSprite(const string &name, const Sprite *sprite, const Point &unit, float frame)
 {
 	sprites[name] = sprite;
 	spriteUnits[name] = unit;
-	if(frame)
-		spriteFrames[name] = frame;
+	spriteFrames[name] = frame;
 }
 
 
@@ -48,10 +47,10 @@ const Point &Information::GetSpriteUnit(const string &name) const
 
 
 
-int Information::GetSpriteFrame(const string &name) const
+float Information::GetSpriteFrame(const string &name) const
 {
 	auto it = spriteFrames.find(name);
-	return (it == spriteFrames.end()) ? 0 : it->second;
+	return (it == spriteFrames.end()) ? 0.f : it->second;
 }
 
 
@@ -76,7 +75,7 @@ const string &Information::GetString(const string &name) const
 void Information::SetBar(const string &name, double value, double segments)
 {
 	bars[name] = value;
-	barSegments[name] = static_cast<double>(segments);
+	barSegments[name] = segments;
 }
 
 
@@ -85,7 +84,7 @@ double Information::BarValue(const string &name) const
 {
 	auto it = bars.find(name);
 	
-	return (it == bars.end()) ? 1. : it->second;
+	return (it == bars.end()) ? 0. : it->second;
 }
 
 

@@ -15,9 +15,10 @@ PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 
 #include <vector>
 
-class Body;
+class Government;
 class Point;
 class Projectile;
+class Body;
 
 
 
@@ -28,7 +29,7 @@ class CollisionSet {
 public:
 	// Initialize a collision set. The cell size and cell count should both be
 	// powers of two; otherwise, they are rounded down to a power of two.
-	CollisionSet(int cellSize, int cellCount);
+	CollisionSet(unsigned cellSize, unsigned cellCount);
 	
 	// Clear all objects in the set. Specify which engine step we are on, so we
 	// know what animation frame each object is on.
@@ -41,6 +42,10 @@ public:
 	// Get the first object that collides with the given projectile. If a
 	// "closest hit" value is given, update that value.
 	Body *Line(const Projectile &projectile, double *closestHit = nullptr) const;
+	// Check for collisions with a line, which may be a projectile's current
+	// position or its entire expected trajectory (for the auto-firing AI).
+	Body *Line(const Point &from, const Point &to, double *closestHit = nullptr,
+		const Government *pGov = nullptr, const Body *target = nullptr) const;
 	
 	// Get all objects within the given range of the given point.
 	const std::vector<Body *> &Circle(const Point &center, double radius) const;
@@ -60,13 +65,13 @@ private:
 	
 private:
 	// The size of individual cells of the grid.
-	int CELL_SIZE;
-	int SHIFT;
-	int CELL_MASK;
+	unsigned CELL_SIZE;
+	unsigned SHIFT;
+	unsigned CELL_MASK;
 	
 	// The number of grid cells.
-	int CELLS;
-	int WRAP_MASK;
+	unsigned CELLS;
+	unsigned WRAP_MASK;
 	
 	// The current game engine step.
 	int step;
@@ -74,7 +79,8 @@ private:
 	// Vectors to store the objects in the collision set.
 	std::vector<Entry> added;
 	std::vector<Entry> sorted;
-	std::vector<int> counts;
+	// After Finish(), counts[index] is where a certain bin begins.
+	std::vector<unsigned> counts;
 	
 	// Vector for returning the result of a circle query.
 	mutable std::vector<Body *> result;

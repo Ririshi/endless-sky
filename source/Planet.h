@@ -39,7 +39,7 @@ class System;
 class Planet {
 public:
 	// Load a planet's description from a file.
-	void Load(const DataNode &node, const Set<Sale<Ship>> &ships, const Set<Sale<Outfit>> &outfits);
+	void Load(const DataNode &node);
 	
 	// Get the name of the planet.
 	const std::string &Name() const;
@@ -67,6 +67,10 @@ public:
 	// Check if this planet is inhabited (i.e. it has a spaceport, and does not
 	// have the "uninhabited" attribute).
 	bool IsInhabited() const;
+	
+	// Check if the security of this planet has been changed from the default so
+	// that we can check if an uninhabited world should fine the player.
+	bool HasCustomSecurity() const;
 	
 	// Check if this planet has a shipyard.
 	bool HasShipyard() const;
@@ -101,14 +105,19 @@ public:
 	
 	// Check if this is a wormhole (that is, it appears in multiple systems).
 	bool IsWormhole() const;
-	const System *WormholeSource(const System *from) const;
+	const System *WormholeSource(const System *to) const;
 	const System *WormholeDestination(const System *from) const;
+	const std::vector<const System *> &WormholeSystems() const;
 	
 	// Check if the given ship has all the attributes necessary to allow it to
 	// land on this planet.
 	bool IsAccessible(const Ship *ship) const;
+	// Check if this planet has any required attributes that restrict landability.
+	bool IsUnrestricted() const;
+	
 	// Below are convenience functions which access the game state in Politics,
 	// but do so with a less convoluted syntax:
+	bool HasFuelFor(const Ship &ship) const;
 	bool CanLand(const Ship &ship) const;
 	bool CanLand() const;
 	bool CanUseServices() const;
@@ -140,13 +149,21 @@ private:
 	double requiredReputation = 0.;
 	double bribe = 0.01;
 	double security = .25;
+	bool inhabited = false;
+	bool customSecurity = false;
+	// Any required attributes needed to land on this planet.
+	std::set<std::string> requiredAttributes;
 	
+	// The salary to be paid if this planet is dominated.
 	int tribute = 0;
-	const Fleet *defenseFleet = nullptr;
-	int defenseCount = 0;
-	mutable int defenseDeployed = 0;
+	// The minimum combat rating needed to dominate this planet.
 	int defenseThreshold = 4000;
 	mutable bool isDefending = false;
+	// The defense fleets that should be spawned (in order of specification).
+	std::vector<const Fleet *> defenseFleets;
+	// How many fleets have been spawned, and the index of the next to be spawned.
+	mutable size_t defenseDeployed = 0;
+	// Ships that have been created by instantiating its defense fleets.
 	mutable std::list<std::shared_ptr<Ship>> defenders;
 	
 	std::vector<const System *> systems;

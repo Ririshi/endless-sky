@@ -30,9 +30,6 @@ class Panel;
 // starting with whichever one is on the bottom.
 class UI {
 public:
-	// Default constructor.
-	UI();
-	
 	// Handle an event. The event is handed to each panel on the stack until one
 	// of them handles it. If none do, this returns false.
 	bool Handle(const SDL_Event &event);
@@ -51,9 +48,10 @@ public:
 	// a panel to Pop() itself.
 	void Pop(const Panel *panel);
 	
-	// Check whether the given panel is on top, i.e. is the active one.
+	// Check whether the given panel is on top, i.e. is the active one, out of
+	// all panels that are already drawn on this step.
 	bool IsTop(const Panel *panel) const;
-	// Get the top panel.
+	// Get the top panel, out of all possible panels, including ones not yet drawn.
 	std::shared_ptr<Panel> Top() const;
 	
 	// Delete all the panels and clear the "done" flag.
@@ -61,6 +59,9 @@ public:
 	// Get the lower-most panel.
 	std::shared_ptr<Panel> Root() const;
 	
+	// If the player enters the game, enable saving the loaded file.
+	void CanSave(bool canSave);
+	bool CanSave() const;
 	// Tell the UI to quit.
 	void Quit();
 	// Check if it is time to quit.
@@ -78,9 +79,12 @@ private:
 	
 	
 private:
-	std::vector<std::shared_ptr<Panel>> stack;
+	// Whether the player has taken actions that enable us to save the game.
+	bool canSave = false;
+	// Whether the player has requested the game to shut down.
+	bool isDone = false;
 	
-	bool isDone;
+	std::vector<std::shared_ptr<Panel>> stack;
 	std::vector<std::shared_ptr<Panel>> toPush;
 	std::vector<const Panel *> toPop;
 };

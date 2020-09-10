@@ -29,11 +29,12 @@ namespace {
 	int scrollSpeed = 60;
 	
 	// Strings for ammo expenditure:
-	static const string EXPEND_AMMO = "Escorts expend ammo";
-	static const string FRUGAL_ESCORTS = "Escorts use ammo frugally";
+	const string EXPEND_AMMO = "Escorts expend ammo";
+	const string FRUGAL_ESCORTS = "Escorts use ammo frugally";
 	
-	static const vector<double> ZOOMS = {.25, .35, .50, .70, 1.00, 1.40, 2.00};
+	const vector<double> ZOOMS = {.25, .35, .50, .70, 1.00, 1.40, 2.00};
 	int zoomIndex = 4;
+	const double VOLUME_SCALE = .25;
 }
 
 
@@ -44,15 +45,20 @@ void Preferences::Load()
 	// values for settings that are off by default.
 	settings["Automatic aiming"] = true;
 	settings["Render motion blur"] = true;
-	settings["Escorts use ammo frugally"] = true;
-	settings["Escorts expend ammo"] = true;
+	settings[FRUGAL_ESCORTS] = true;
+	settings[EXPEND_AMMO] = true;
+	settings["Damaged fighters retreat"] = true;
 	settings["Warning siren"] = true;
+	settings["Show escort systems on map"] = true;
 	settings["Show mini-map"] = true;
 	settings["Show planet labels"] = true;
 	settings["Show hyperspace flash"] = true;
 	settings["Draw background haze"] = true;
+	settings["Draw starfield"] = true;
 	settings["Hide unexplored map regions"] = true;
 	settings["Turrets focus fire"] = true;
+	settings["Ship outlines in shops"] = true;
+	settings["Interrupt fast-forward"] = true;
 	
 	DataFile prefs(Files::Config() + "preferences.txt");
 	for(const DataNode &node : prefs)
@@ -62,7 +68,7 @@ void Preferences::Load()
 		else if(node.Token(0) == "zoom" && node.Size() >= 2)
 			Screen::SetZoom(node.Value(1));
 		else if(node.Token(0) == "volume" && node.Size() >= 2)
-			Audio::SetVolume(node.Value(1));
+			Audio::SetVolume(node.Value(1) * VOLUME_SCALE);
 		else if(node.Token(0) == "scroll speed" && node.Size() >= 2)
 			scrollSpeed = node.Value(1);
 		else if(node.Token(0) == "view zoom")
@@ -78,9 +84,9 @@ void Preferences::Save()
 {
 	DataWriter out(Files::Config() + "preferences.txt");
 	
-	out.Write("volume", Audio::Volume());
+	out.Write("volume", Audio::Volume() / VOLUME_SCALE);
 	out.Write("window size", Screen::RawWidth(), Screen::RawHeight());
-	out.Write("zoom", Screen::Zoom());
+	out.Write("zoom", Screen::UserZoom());
 	out.Write("scroll speed", scrollSpeed);
 	out.Write("view zoom", zoomIndex);
 	
@@ -119,6 +125,8 @@ string Preferences::AmmoUsage()
 {
 	return Has(EXPEND_AMMO) ? Has(FRUGAL_ESCORTS) ? "frugally" : "always" : "never";
 }
+
+
 
 // Scroll speed preference.
 int Preferences::ScrollSpeed()
