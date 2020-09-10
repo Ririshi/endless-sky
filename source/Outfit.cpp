@@ -287,7 +287,7 @@ const Dictionary &Outfit::Attributes() const
 
 
 
-const map<string, double> &Outfit::Tags() const
+const Dictionary &Outfit::Tags() const
 {
 	return tags;
 }
