@@ -80,8 +80,11 @@ private:
 		// commodity, no unit mass is given (because it is 1). If the count is
 		// 1, only the unit mass is reported.
 		const std::string &Size() const;
-		// Get the total value (unit value times count) as a string.
-		const std::string &Value() const;
+		// Get the value as a string. If detailed is false, the total value is
+		// returned. Otherwise, the total value is returned in the format
+		// "<count> x <unit value>". If the count is 1, only the unit value is
+		// reported.
+		const std::string &Value(bool detailed) const;
 		
 		// If this is an outfit, get the outfit. Otherwise, this returns null.
 		const Outfit *GetOutfit() const;
@@ -102,6 +105,7 @@ private:
 		int64_t unitValue;
 		std::string size;
 		std::string value;
+		std::string detailedValue;
 	};
 	
 private:

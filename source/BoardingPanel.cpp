@@ -78,7 +78,7 @@ BoardingPanel::BoardingPanel(PlayerInfo &player, const shared_ptr<Ship> &victim)
 		int count = 0;
 		// Merge the outfit lists from the ship itself and its cargo bay. If an
 		// outfit exists in both locations, combine the counts.
-		bool shipIsFirst = (cit == victim->Cargo().Outfits().end() || 
+		bool shipIsFirst = (cit == victim->Cargo().Outfits().end() ||
 			(sit != victim->Outfits().end() && sit->first <= cit->first));
 		bool cargoIsFirst = (sit == victim->Outfits().end() ||
 			(cit != victim->Cargo().Outfits().end() && cit->first <= sit->first));
@@ -141,16 +141,21 @@ void BoardingPanel::Draw()
 		if(isSelected)
 			FillShader::Fill(Point(-155., y + 10.), Point(360., 20.), back);
 		
+		// Draw detailed item value / size if the alt-key is held down
+		SDL_Keymod mod = SDL_GetModState();
+		const std::string &value = item.Value(mod & KMOD_ALT);
+		const std::string &size = item.Size();
+		
 		// Color the item based on whether you have space for it.
 		const Color &color = item.CanTake(*you) ? isSelected ? bright : medium : dim;
 		Point pos(-320., y + fontOff);
 		font.Draw(item.Name(), pos, color);
 		
-		Point valuePos(pos.X() + 260. - font.Width(item.Value()), pos.Y());
-		font.Draw(item.Value(), valuePos, color);
+		Point valuePos(pos.X() + 260. - font.Width(value), pos.Y());
+		font.Draw(value, valuePos, color);
 		
-		Point sizePos(pos.X() + 330. - font.Width(item.Size()), pos.Y());
-		font.Draw(item.Size(), sizePos, color);
+		Point sizePos(pos.X() + 330. - font.Width(size), pos.Y());
+		font.Draw(size, sizePos, color);
 	}
 	
 	// Set which buttons are active.
@@ -572,9 +577,9 @@ const string &BoardingPanel::Plunder::Size() const
 
 
 // Get the total value (unit value times count) as a string.
-const string &BoardingPanel::Plunder::Value() const
+const string &BoardingPanel::Plunder::Value(bool detailed) const
 {
-	return value;
+	return detailed ? detailedValue : value;
 }
 
 
@@ -621,14 +626,13 @@ void BoardingPanel::Plunder::Take(int count)
 void BoardingPanel::Plunder::UpdateStrings()
 {
 	double mass = UnitMass();
-	if(!outfit)
-		size = to_string(count);
-	else if(count == 1)
-		size = Format::Number(mass);
+	if(!outfit || count == 1)
+		size = Format::Number(count * mass);
 	else
 		size = to_string(count) + " x " + Format::Number(mass);
 	
-	value = Format::Credits(unitValue * count);
+	value = Format::Credits(count * unitValue);
+	detailedValue = to_string(count) + " x " + Format::Credits(unitValue);
 }
 
 
